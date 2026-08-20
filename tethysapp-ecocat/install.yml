@@ -13,8 +13,6 @@ requirements:
     - conda-forge
     packages:
     - earthengine-api
-    - json
-    - oauth2client
     - shapely
     - geojson
     - rasterio
