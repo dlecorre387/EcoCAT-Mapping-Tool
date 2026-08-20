@@ -1,0 +1,75 @@
+{% extends tethys_app.package|add:"/base.html" %}
+{% load static tethys %}
+
+{% block app_navigation_items %}
+  <h2><i class="bi bi-cursor-fill"></i> User Input</h2>
+
+  <ol>
+    <li>Define a Region of Interest <i class="bi bi-info-circle" title="Define your Region of Interest (RoI) - an area containing the ecosystem you want to map - by selecting one or more boundaries from an existing catalogue, uploading a GeoJSON file OR drawing a RoI on the map (NOTE: drawing controls are in the top left of the map). You can also buffer your RoI (in kilometres) if you think there may be ecosystem present beyond its current extent"></i></li>
+  </ol>
+  <p>Choose from a catalogue:</p>
+  {% gizmo asset_input %}
+  {% gizmo level1_input %}
+  {% gizmo level2_input %}
+  <p><b>OR</b> Upload a GeoJSON:</p>
+  <input type="file" id="roi-file" name="roi-file" accept=".geojson" multiple="false" form="input-form" style="margin-left: 20px; width: 230px; padding-bottom: 1rem;">
+  <p>(Optional) Buffer the RoI:</p>
+  {% gizmo buffer_input %}
+
+  <ol start="2">
+    <li>Select the assessment year(s) for your chosen ecosystem <i class="bi bi-info-circle" title="Choose the assessment year(s) (between 1983 to 2025) for which you require a map of your ecosystem, by either selecting specific years OR setting a regular interval starting from 2025 (e.g. a 20-year interval would result in 2025, 2005, 1985)."></i></li>
+  </ol>
+  <p>Pick one or more specific years:</p>
+  {% gizmo years_input %}
+  <p><b>OR</b> Select a regular assessment interval starting from 2025:</p>
+  {% gizmo interval_input %}
+
+  <ol start="3">
+    <li>Click <a style="color: #5cb85c;"><i class="bi bi-chevron-right"></i> Save Inputs</a> to save the chosen RoI and years <i class="bi bi-info-circle" title="Save your chosen Region of Interest (RoI) and assessment year(s) by clicking the 'Save Inputs' button in the bottom right of the screen."></i></li>
+  </ol>
+
+  <ol start="4">
+    <li>Lastly, click <a style="color: #337ab7"><i class="bi bi-chevron-double-right"></i> Go to Next Step - Labelling</a> to move onwards <i class="bi bi-info-circle" title="Once you have saved your inputs, click the 'Go to Next Step - Labelling' button in the bottom right of the screen to move onto the next part of the EcoCAT Mapping Tool"></i></li>
+  </ol>
+  
+{% endblock %}
+
+{% block app_content %}
+  <div id="loader">
+    <img src="{% static tethys_app|public:'images/loading.svg' %}">
+  </div>
+  <div id="down-loader">
+    <img src="{% static tethys_app|public:'images/downloading_data.svg' %}">
+  </div>
+  <form id="input-form" method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {% gizmo map_view %}
+  </form>
+{% endblock %}
+
+{% block app_actions %}
+  {% gizmo example_button %}
+  {% gizmo generate_button %}
+  {% gizmo reset_button %}
+  {% gizmo submit_button %}
+  <form id="next-form" method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {% gizmo next_button %}
+  </form>
+{% endblock %}
+
+{% block after_app_content %}
+  <div id="assets" data-assets="{{ assets|jsonify }}"></div>
+{% endblock %}
+
+{% block content_dependent_styles %}
+  {{ block.super }}
+  <link rel="stylesheet" href="{% static tethys_app|public:'css/loader.css' %}" />
+  {{ block.super }}
+  <link rel="stylesheet" href="{% static tethys_app|public:'css/map.css' %}" />
+{% endblock %}
+
+{% block scripts %}
+  {{ block.super }}
+  <script src="{% static tethys_app|public:'js/input.js' %}" type="text/javascript"></script>
+{% endblock %}

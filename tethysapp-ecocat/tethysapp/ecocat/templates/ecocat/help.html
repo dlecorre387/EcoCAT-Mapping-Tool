@@ -1,0 +1,109 @@
+{% extends tethys_app.package|add:"/base.html" %}
+{% load static tethys %}
+
+{% block app_navigation_items %}
+    {% url tethys_app|url:'home' as home_url %}
+    {% url tethys_app|url:'input' as input_url %}
+    {% url tethys_app|url:'occurrences' as occurrences_url %}
+    {% url tethys_app|url:'labelling' as labelling_url %}
+    {% url tethys_app|url:'classification' as classification_url %}
+    <li class="nav-item title"><h2><i class="bi bi-list"></i> Navigation</h2></li>
+    <li class="nav-item"><a class="nav-link{% if request.path == input_url %} active{% endif %}" href="#help" style="font-size: 1rem;"><b>Help</b></a></li>
+    <li class="nav-item"><a class="nav-link{% if request.path == input_url %} active{% endif %}" href="#input" style="font-size: 1rem;">User Workflow</a></li>
+    <li class="nav-item"><a class="nav-link{% if request.path == input_url %} active{% endif %}" href="#abbrev" style="font-size: 1rem;">Nomenclature</a></li>
+    <li class="nav-item"><a class="nav-link{% if request.path == labelling_url %} active{% endif %}" href="#faqs" style="font-size: 1rem;"><b>FAQs</b></a></li>
+{% endblock %}
+
+{% block app_content %}
+
+    <h2 id="help">Help</h2>
+
+    <br><h4 id="workflow">User Workflow</h4>
+
+    <br><h5 id="input">Page 1: User Input</h5>
+
+        <br><p>In this page, users provide the EcoCAT Mapping Tool with knowledge of where the ecosystem is geographically, as well as when it should be mapped.</p>
+
+        <ol>
+            <li><b>Define a Region of Interest (RoI):</b></li>
+                In order to perform a risk assessment, we need to know where the ecosystem is geographically by providing a RoI that encapsulates it. This can be hand-drawn on the map, perhaps as a box or polygon around all known units. It can also be uploaded to the tool (as a GeoJSON in EPSG:4326) if you already have a boundary that you would like to use as the RoI. A RoI can also be selected from a series of catalogues (such as country boundaries or RESOLVE Ecoregions) hosted on Google Earth Engine. The drawn, uploaded, or selected RoI can then be buffered (in kilometres) if required.
+            <li><b>Select your ecosystem assessment year(s):</b></li>
+                To determine the change in the ecosystem's extent over time, we also need to know which years it should be assessed within. If you not performing a risk assessment and, therefore, may only require a single map, then a specific year can be chosen. If you are performing a risk assessment, then multiple years can be chosen from a drop-down, or assessment years can be generated automatically by using a regular assessment interval (e.g. every 10 years) starting from 2025.
+        </ol>
+
+    <br><h5 id="labelling">Page 2: Labelling</h5>
+
+        <br><p>In this page, users employ their expert knowledge of their chosen ecosystem to label it through time using temporally-explicit satellite data.</p>
+
+        <ol>
+            <li><b>Pick one of your selected assessment years:</b></li>
+                Choose one of the assessment years that you selected in the 'User Input' page to begin the process of labelling. These labels will be used to build a dataset of pixel values (such as colour, vegetation health, topography) to train a machine learning model to map the ecosystem within the RoI.
+            <li><b>Display some satellite data:</b></li>
+                To help with the labelling process, it will be necessary to load some satellite data (e.g. imagery, spectral indices, topography) that are correct as of this chosen assessment period. For example, if we are labelling 1985, we need to make sure that any pixels labelled as ecosystem were genuinely taken as close to 1985 as possible.
+            <li><b>Draw or upload your ecosystem and non-ecosystem background labels:</b></li>
+                Pixels can be labelled as ecosystem or non-ecosystem background (such as urban areas, water bodies, other vegetation etc.) using points (i.e. individual pixels) or as polygons (i.e. several pixels at a time) by using the drawing controls in the top left of the map. Otherwise, you can upload ecosystem or background labels separately as GeoJSONs (in EPSG:4326).
+            <li><b>Repeat for all assessment years:</b></li>
+                This labelling process needs to be repeated for all of your chosen assessment periods, as a separate machine learning model will be trained for each year.
+        </ol>
+
+    <br><h5 id="classification">Page 3: Mapping</h5>
+
+        <br><p></p>
+
+        <ol>
+            <li><b>Pick one of your assessment years:</b></li>
+                Again, start by picking one of your assessment years to begin the process of mapping your ecosystem.
+            <li><b>Display some satellite data:</b></li>
+                Similar to the 'Labelling' page, satellite data correct as of the chosen assessment year can be displayed on the map to help validate your ecosystem map and to see if and where more ecosystem labels may be required.
+            <li><b>Classify the Ecosystem:</b></li>
+                By clicking the 'Classify Ecosystem' button, you will start training a machine learning model (default is a Random Forest) on the labels that you made for this assessment year. This trained model will then be used to classify all pixels within your RoI as either ecosystem or non-ecosystem background. The resulting ecosystem map will be displayed on-screen, along with the ecosystem probabilities (i.e. the model's confidence from 0-100% that a given pixel is ecosystem).
+            <li><b>Export your Ecosystem Map:</b></li>
+                Once you are happy with the result of your ecosystem map for this assessment year, you can export it from the Google Earth Enging (GEE) servers to Google Cloud Storage, from which it can be downloaded once the export is complete. NOTE: To preserve usage allocations within GEE, exporting is currently limited to select users in this version of the EcoCAT Mapping Tool.
+            <li><b>Repeat for all assessment periods:</b></li>
+                Whilst you are waiting for your ecosystem map to finish exporting, you can repeat this process for you other assessment years.
+            </ol>
+
+    <br><h5>Optional Step: Perform Ecosystem Risk Assessment Using EcoCAT RLE Assessment Tool</h5>
+
+    <br><h4 id="abbrev">Nomenclature</h4>
+
+        <ul>
+            <li><b>DEM</b> - Digital Elevation Model</li>
+            <li><b>EcoCAT</b> - Ecosystem Conservation Assessment Tools</li>
+            <li><b>ETM+</b> - (Landsat) Enhanced Thematic Mapper</li>
+            <li><b>EVI</b> - Enhanced Vegetation Index</li>
+            <li><b>FN</b> - False Negative (an ecosystem pixel incorrectly classified as background)</li>
+            <li><b>FP</b> - False Positive (a background pixel incorrectly classified as ecosystem)</li>
+            <li><b>F1</b> - F1 score (also known as F-measure)</li>
+            <li><b>GBIF</b> - Global Biodiversity Information Facility</li>
+            <li><b>GCP</b> - Google Cloud Platform</li>
+            <li><b>GEDI</b> - Global Ecosystem Dynamics Investigation</li>
+            <li><b>GEE</b> - Google Earth Engine</li>
+            <li><b>IUCN</b> - International Union for Conservation of Nature</li>
+            <li><b>LAI</b> - Leaf Area Index</li>
+            <li><b>MODIS</b> - Moderate Resolution Imaging Spectroradiometer</li>
+            <li><b>NDBI</b> - Normalised Difference Built-up Index</li>
+            <li><b>NDGI</b> - Normalised Difference Greeness Index</li>
+            <li><b>NDMI</b> - Normalised Difference Moisture Index</li>
+            <li><b>NDPI</b> - Normalised Difference Phenology Index</li>
+            <li><b>NDVI</b> - Normalised Difference Vegetation Index</li>
+            <li><b>NDWI</b> - Normalised Difference Water Index</li>
+            <li><b>NPP</b> - Net Primary Productivity</li>
+            <li><b>OLI</b> - (Landsat) Optical Land Imager</li>
+            <li><b>P</b> - Precision, also known as Positive Predictive Value (PPV), consumer's accuracy and user's accuracy</li>
+            <li><b>R</b> - Recall, also known as sensitivity, True Positive Rate (TPR) and producer's accuracy</li>
+            <li><b>RLE</b> - Red List of Ecosystems</li>
+            <li><b>RoI</b> - Region of Interest</li>
+            <li><b>SAVI</b> - Soil-Adjusted Vegetation Index</li>
+            <li><b>SNIC</b> - Simple Non-Iterative Clustering</li>
+            <li><b>SVM</b> - Support Vector Machine</li>
+            <li><b>TM</b> - (Landsat) Thematic Mapper</li>
+            <li><b>TN</b> - True Negative (a background pixel correctly classified as background)</li>
+            <li><b>TP</b> - True Positive (an ecosystem pixel correctly classified as ecosystem)</li>
+            <li><b>WDPA</b> - World Database on Protected Areas</li>
+            <li><b>WGSRPD</b> - World Geographical Scheme for Recording Plant Distributions</li>
+        </ul>
+
+    <br><h2 id="faqs">Frequently Asked Questions (FAQs)</h2>
+
+{% endblock %}
