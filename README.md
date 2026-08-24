@@ -1,6 +1,9 @@
 # The EcoCAT Mapping Tool - a user-friendly web-app for automated time-series ecosystem mapping using satellite data and machine learning
 
-![Demonstration of the EcoCAT Mapping Tool on Cornish Lowland Heathland]()
+<video alt="Demonstration of the EcoCAT Mapping Tool on Cornish Lowland Heathland" width="100%" height="auto" controls>
+    <source src="images/EcoCAT_Demo.mp4" type="video/mp4">
+</video>
+
 **Figure 1:** A fly-through of the EcoCAT Mapping Tool being used to map Lowland Heathland in Cornwall, United Kingdom.
 
 ## 1. Introduction
@@ -89,11 +92,14 @@ tethys quickstart
 
 ### 2.3. Clone the GitHub Repository
 
-The next step is to download the entire directory of the EcoCAT Mapping Tool's files and scipts to wherever you like on you local computer. You can download the directory as a .zip file directly from GitHub (click the green '<> Code' button in the top right) which can then be extracted at the desired location. Or you can run the following in the Anaconda Prompt/terminal if you have Git installed.
+The next step is to download the entire directory of the EcoCAT Mapping Tool's files and scipts to wherever you like on you local computer. You can download the directory as a .zip file directly from GitHub by clicking the green '<> Code' button (**Figure 5**), which can then be extracted at the desired location. Or you can run the following in the Anaconda Prompt/terminal if you have Git installed.
 
 ```bash
 git clone https://github.com/dlecorre387/EcoCAT-Mapping-Tool.git
 ```
+
+![Screenshot of the EcoCAT Mapping Tool GitHub page](images/GitHub_Clone.png)
+**Figure 5:** The header of the EcoCAT Mapping Tool GitHub repository, which can be downloaded as a .zip file by clicking the green '<> Code' button highlighted in red.
 
 ### 2.4. Install the EcoCAT Mapping Tool to your Tethys Portal
 
@@ -111,6 +117,14 @@ Lastly, we can run the following command in the Anaconda Prompt/terminal to begi
 ```bash
 tethys install
 ```
+
+You will be asked to choose values for some custom settings, which are:
+- **scale:** The map scale of the ecosystem maps in metres per pixel. A smaller 'scale' will result in a higher resolution ecosystem map, but will increase the computational cost. The minimum value that can be set is 30, but we recommend a value of 100.
+- **model:** The type of machine learning model used to classify the ecosystem. This can be one of RF (random forest), kNN (k-nearest neighbour classifier), SVM (support vector machine), or CART (classification and regression trees). We recommend setting 'model' to RF.
+- **method:** The method of classification to be used. Can be one of pixels (for classifying each pixel individually), or clusters (for applying simple non-iterative clustering to separate the region into smaller parcels, and then classifying each parcel as a whole). We recommend setting 'method' to pixels as the clustering approach is experimental and has a display issue when changing zoom levels.
+
+![Screenshot of Tethys app install and custom settings input](images/Custom_Settings.png)
+**Figure 6:** A screenshot of the Anaconda Prompt having just run `tethys install` within the `tethysapp-ecocat` folder, showing the user being queried for values for some custom settings.
 
 ### 2.5. Setting Up Google Earth Engine (GEE)
 
@@ -151,11 +165,6 @@ Every time that we want to start the EcoCAT Mapping Tool, we need to make sure t
 conda activate tethys
 tethys start
 ```
-
-You may be asked to choose values for some custom settings, which are:
-- **scale:** The map scale of the ecosystem maps in metres per pixel. A smaller 'scale' will result in a higher resolution ecosystem map, but will increase the computational cost. The minimum value that can be set is 30, but we recommend a value of 100.
-- **model:** The type of machine learning model used to classify the ecosystem. This can be one of RF (random forest), kNN (k-nearest neighbour classifier), SVM (support vector machine), or CART (classification and regression trees). We recommend setting 'model' to RF.
-- **method:** The method of classification to be used. Can be one of pixels (for classifying each pixel individually), or clusters (for applying simple non-iterative clustering to separate the region into smaller parcels, and then classifying each parcel as a whole). We recommend setting 'method' to pixels as the clustering approach is experimental and has a display issue when changing zoom levels.
 
 ## 4. How to Use the EcoCAT Mapping Tool
 

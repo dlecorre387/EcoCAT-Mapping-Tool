@@ -1811,21 +1811,8 @@ def get_download(request, user_workspace):
                 # If the export has completed, return the download URL
                 elif state == 'SUCCEEDED':
 
-                    # Get the file name from the user input
-                    file_name = user_dict[str(year)]['task']['file_name']
-
-                    # Get the image metadata
-                    properties = user_dict[str(year)]['task']['properties']
-
-                    # Combine with the URL for the EcoCAT classifications GCP bucket
-                    export_url = os.path.join('https://storage.cloud.google.com/ecocat-classifications/', file_name + '.tif')
-                    
-                    # # Use rasterio to impute the properties to the GeoTIFF's metadata
-                    # with rasterio.open(export_url, 'r+') as src:
-                    #     src.update_tags(**properties)
-
                     # Inform the user that the export has finished
-                    warning = f"Export for {year} has finished. Downloading...\nCopy this URL to download the ecosystem map in future: {export_url}"
+                    warning = f"Export for {year} has finished. Go to your Google Drive to download it!"
 
             # Otherwise, submit an export task
             else:
