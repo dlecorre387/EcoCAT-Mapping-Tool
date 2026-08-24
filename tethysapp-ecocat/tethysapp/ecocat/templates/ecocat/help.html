@@ -2,11 +2,6 @@
 {% load static tethys %}
 
 {% block app_navigation_items %}
-    {% url tethys_app|url:'home' as home_url %}
-    {% url tethys_app|url:'input' as input_url %}
-    {% url tethys_app|url:'occurrences' as occurrences_url %}
-    {% url tethys_app|url:'labelling' as labelling_url %}
-    {% url tethys_app|url:'classification' as classification_url %}
     <li class="nav-item title"><h2><i class="bi bi-list"></i> Navigation</h2></li>
     <li class="nav-item"><a class="nav-link{% if request.path == input_url %} active{% endif %}" href="#help" style="font-size: 1rem;"><b>Help</b></a></li>
     <li class="nav-item"><a class="nav-link{% if request.path == input_url %} active{% endif %}" href="#input" style="font-size: 1rem;">User Workflow</a></li>

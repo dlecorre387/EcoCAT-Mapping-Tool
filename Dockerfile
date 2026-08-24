@@ -36,7 +36,7 @@ ENV TETHYS_PORT=8080
 ENV NGINX_PORT=8080
 
 # Copy all app files
-COPY tethysapp-ecocat ${TETHYS_HOME}/apps/tethysapp-ecocat
+COPY tethysapp-ecocat-gcp ${TETHYS_HOME}/apps/tethysapp-ecocat
 
 # Activate the Conda environment 'tethys'
 ARG MAMBA_DOCKERFILE_ACTIVATE=1

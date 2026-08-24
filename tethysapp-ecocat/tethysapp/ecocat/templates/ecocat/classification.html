@@ -24,20 +24,6 @@
   <ol start="3">
     <li>Click <a style="color: #5cb85c"><i class="bi bi-gear-wide-connected"></i> Classify Ecosystem</a> to map the ecosystem <i class="bi bi-info-circle" title="By clicking 'Classify Ecosystem' in the bottom right, you will train a machine learning model on you ecosystem and background labels to map the entire RoI for this chosen year."></i></li>
   </ol>
-
-  <!-- <ol start="4">
-    <li>(Optional) Select an overlay <i class="bi bi-info-circle" title="Select or upload an overlay that may assist with validating the classification."></i></li>
-  </ol>
-  <p>Choose from a catalogue:</p>
-  <form id="overlay-form" method="post" enctype="multipart/form-data">
-    {% csrf_token %}
-    {% gizmo asset_input %}
-    {% gizmo level1_input %}
-    {% gizmo level2_input %}
-  </form>
-  <p><b>OR</b> Upload a GeoJSON:</p>
-  <input type="file" id="overlay-file" name="overlay-file" accept=".geojson" form="overlay-form" style="margin-left: 20px; margin-right: 20px; padding-bottom: 1rem;">
-  {% gizmo overlay_button %} -->
   
   <ol start="4">
     <li>Click <a style="color: #337ab7"><i class="bi bi-cloud-upload-fill"></i> Export Map</a> to retrieve the map from GEE <i class="bi bi-info-circle" title="Once your are content with the visual and quantitative accuracy of your ecosystem map, you can export it from the Google Earth Engine (GEE) servers where it currently sits to Google Cloud Storage, from which you will then be able to download it as a GeoTIFF."></i></li>

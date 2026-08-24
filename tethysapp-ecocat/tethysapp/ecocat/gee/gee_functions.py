@@ -126,7 +126,6 @@ def classify_ecosystem(roi: dict, ecosystem: Optional[dict], background: Optiona
         elif ecosystem['features'][0]['geometry']['type'] == 'Polygon':
             ecosystem_points = ecosystem_collection.map(fixed_grid).flatten()
             ecosystem_samples = training_data.sampleRegions(collection=ecosystem_points, tileScale=tile_scale, geometries=True)
-            # ecosystem_samples = ecosystem_samples.filter(ee.Filter.contains(leftValue=ecosystem_collection.geometry(), rightField='.geo'))
 
         # If the background was labelled using points
         if background['features'][0]['geometry']['type'] == 'Point':
@@ -136,7 +135,6 @@ def classify_ecosystem(roi: dict, ecosystem: Optional[dict], background: Optiona
         elif background['features'][0]['geometry']['type'] == 'Polygon':
             background_points = background_collection.map(fixed_grid).flatten()
             background_samples = training_data.sampleRegions(collection=background_points, tileScale=tile_scale, geometries=True)
-            # background_samples = background_samples.filter(ee.Filter.contains(leftValue=background_collection.geometry(), rightField='.geo'))
 
         # Assign the class label to each sample
         ecosystem_samples = ecosystem_samples.map(lambda feat: feat.set('class', 1))
@@ -279,67 +277,6 @@ def classify_ecosystem(roi: dict, ecosystem: Optional[dict], background: Optiona
     # Get the confusion matrix for the training and validation samples
     train_matrix = train_preds.errorMatrix('class', 'classification')
     val_matrix = val_preds.errorMatrix('class', 'classification')
-
-    # # Try to optimise the probability threshold using the validation samples
-    # try:
-
-    #     # # Sample the probabilities using the validation points
-    #     # probs_collection = probabilities.sampleRegions(collection=val_samples.sort('split').limit(50), properties=['class'], tileScale=tile_scale)
-
-    #     # # Get the probabilities as lists for what was labelled as ecosystem and background separately
-    #     # ecosystem_probs = ee.Array(probs_collection.filter(ee.Filter.eq('class', 1)).aggregate_array('classification'))
-    #     # background_probs = ee.Array(probs_collection.filter(ee.Filter.eq('class', 0)).aggregate_array('classification'))
-
-    #     # Get a range of confidence thresholds from 50-100%
-    #     thresholds = ee.List.sequence(0.5, 1, 0.01)
-
-    #     # # For each confidence threshold, calculate the TP, FP and FN
-    #     # true_pos = ee.Array(thresholds.map(lambda thresh: ecosystem_probs.gte(ee.Number(thresh)).reduce(ee.Reducer.sum(), axes=[0]).get([0])))
-    #     # false_pos = ee.Array(thresholds.map(lambda thresh: background_probs.gte(ee.Number(thresh)).reduce(ee.Reducer.sum(), axes=[0]).get([0])))
-    #     # false_neg = ee.Array(thresholds.map(lambda thresh: ecosystem_probs.lt(ee.Number(thresh)).reduce(ee.Reducer.sum(), axes=[0]).get([0])))
-
-    #     # # Calculate the precision and recall
-    #     # precision = true_pos.divide(true_pos.add(false_pos))
-    #     # recall = true_pos.divide(true_pos.add(false_neg))
-
-    #     # # Calculate the F1 score
-    #     # f1_score = (precision.multiply(recall).multiply(2)).divide(precision.add(recall))
-
-    #     # Classify the model on just the validation samples
-    #     val_probabilities = val_samples.classify(trained_model)
-
-    #     # Loop through each threshold
-    #     def get_f1_scores(thresh):
-
-    #         # Loop over each feature
-    #         def get_class(feat):
-    #             feat = ee.Feature(feat)
-    #             return ee.Feature(feat.geometry()).copyProperties(feat, ['class']).set('classification', ee.Number(feat.get('classification')).gte(thresh))
-            
-    #         # Get the classification of each validation sample
-    #         val_classifications = val_probabilities.map(get_class)
-
-    #         # Get the confusion matrix for the validation samples
-    #         val_matrix = val_classifications.errorMatrix('class', 'classification').array()
-
-    #         # TPs = [1, 1], FPs = [0, 1], TNs = [0, 0], FNs = [1, 0]
-    #         precision = val_matrix.get([1, 1]).divide(val_matrix.get([1, 1]).add(val_matrix.get([0, 1])))
-    #         recall = val_matrix.get([1, 1]).divide(val_matrix.get([1, 1]).add(val_matrix.get([1, 0])))
-
-    #         return ee.Number(2).multiply((precision.multiply(recall)).divide(precision.add(recall)))
-
-    #     # Get the F1 score for each threshold
-    #     f1_scores = thresholds.map(get_f1_scores)
-
-    #     # Find where the F1 score is maximum
-    #     max_f1_ind = ee.Array(f1_scores).argmax()
-
-    #     # Find the confidence score that maximises the validation F1 score
-    #     thresh = ee.Number(thresholds.get(max_f1_ind.get(0)))
-        
-    # # Otherwise, just use a threshold of 50%
-    # except:
-    #     raise ValueError("Optimal threshold could not be found")
     
     return probabilities, model_info, train_matrix, val_matrix
 
@@ -405,7 +342,6 @@ def cluster_ecosystem(roi: dict, ecosystem: Optional[dict], background: Optional
         elif ecosystem['features'][0]['geometry']['type'] == 'Polygon':
             ecosystem_points = ecosystem_collection.map(fixed_grid).flatten()
             ecosystem_samples = training_data.sampleRegions(collection=ecosystem_points, tileScale=tile_scale, geometries=True)
-            # ecosystem_samples = ecosystem_samples.filter(ee.Filter.contains(leftValue=ecosystem_collection.geometry(), rightField='.geo'))
 
         # If the background was labelled using points
         if background['features'][0]['geometry']['type'] == 'Point':
@@ -415,7 +351,6 @@ def cluster_ecosystem(roi: dict, ecosystem: Optional[dict], background: Optional
         elif background['features'][0]['geometry']['type'] == 'Polygon':
             background_points = background_collection.map(fixed_grid).flatten()
             background_samples = training_data.sampleRegions(collection=background_points, tileScale=tile_scale, geometries=True)
-            # background_samples = background_samples.filter(ee.Filter.contains(leftValue=background_collection.geometry(), rightField='.geo'))
 
         # Assign the class label to each sample
         ecosystem_samples = ecosystem_samples.map(lambda feat: feat.set('class', 1))
@@ -571,48 +506,6 @@ def cluster_ecosystem(roi: dict, ecosystem: Optional[dict], background: Optional
     train_matrix = train_preds.errorMatrix('class', 'classification')
     val_matrix = val_preds.errorMatrix('class', 'classification')
 
-    # # Try to optimise the probability threshold using the validation samples
-    # try:
-
-    #     # Get a range of confidence thresholds from 50-100%
-    #     thresholds = ee.List.sequence(0.5, 1, 0.01)
-    
-    #     # Classify the model on just the validation samples
-    #     val_probabilities = val_samples.classify(trained_model)
-
-    #     # Loop through each threshold
-    #     def get_f1_scores(thresh):
-
-    #         # Loop over each feature
-    #         def get_class(feat):
-    #             feat = ee.Feature(feat)
-    #             return ee.Feature(feat.geometry()).copyProperties(feat, ['class']).set('classification', ee.Number(feat.get('classification')).gte(thresh))
-            
-    #         # Get the classification of each validation sample
-    #         val_classifications = val_probabilities.map(get_class)
-
-    #         # Get the confusion matrix for the validation samples
-    #         val_matrix = val_classifications.errorMatrix('class', 'classification').array()
-
-    #         # TPs = [1, 1], FPs = [0, 1], TNs = [0, 0], FNs = [1, 0]
-    #         precision = val_matrix.get([1, 1]).divide(val_matrix.get([1, 1]).add(val_matrix.get([0, 1])))
-    #         recall = val_matrix.get([1, 1]).divide(val_matrix.get([1, 1]).add(val_matrix.get([1, 0])))
-
-    #         return ee.Number(2).multiply((precision.multiply(recall)).divide(precision.add(recall)))
-
-    #     # Get the F1 score for each threshold
-    #     f1_scores = thresholds.map(get_f1_scores)
-
-    #     # Find where the F1 score is maximum
-    #     max_f1_ind = ee.Array(f1_scores).argmax()
-
-    #     # Find the confidence score that maximises the validation F1 score
-    #     thresh = ee.Number(thresholds.get(max_f1_ind.get(0)))
-        
-    # # Otherwise, just use a threshold of 50%
-    # except:
-    #     raise ValueError("Optimal threshold could not be found")
-
     return probabilities, model_info, train_matrix, val_matrix
 
 def get_dissimilarity_index(year: int, roi_geom: ee.Geometry, collection: ee.ImageCollection, ecosystem: Optional[dict], background: Optional[dict], samples: Optional[dict], scale: int, model_name: str, aoa: bool, tile_scale: int = 1, n_predictors: Optional[int] = None, n_folds: int = 3, seed: int = 42) -> ee.Image:
@@ -663,7 +556,6 @@ def get_dissimilarity_index(year: int, roi_geom: ee.Geometry, collection: ee.Ima
         elif ecosystem['features'][0]['geometry']['type'] == 'Polygon':
             ecosystem_points = ecosystem_collection.map(fixed_grid).flatten()
             ecosystem_samples = training_data.sampleRegions(collection=ecosystem_points, tileScale=tile_scale, geometries=True)
-            # ecosystem_samples = ecosystem_samples.filter(ee.Filter.contains(leftValue=ecosystem_collection.geometry(), rightField='.geo'))
 
         # If the background was labelled using points
         if background['features'][0]['geometry']['type'] == 'Point':
@@ -673,7 +565,6 @@ def get_dissimilarity_index(year: int, roi_geom: ee.Geometry, collection: ee.Ima
         elif background['features'][0]['geometry']['type'] == 'Polygon':
             background_points = background_collection.map(fixed_grid).flatten()
             background_samples = training_data.sampleRegions(collection=background_points, tileScale=tile_scale, geometries=True)
-            # background_samples = background_samples.filter(ee.Filter.contains(leftValue=background_collection.geometry(), rightField='.geo'))
 
         # Assign the class label to each sample
         ecosystem_samples = ecosystem_samples.map(lambda feat: feat.set('class', 1))

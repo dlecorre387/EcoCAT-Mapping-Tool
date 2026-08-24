@@ -31,15 +31,6 @@
   <div style="width: 230px; margin-left: 20px; margin-bottom: 1rem;">
     {% gizmo n_labels %}
   </div>
-  
-  <!-- <ol start="4">
-    <li>(Optional) Upload training data from previous year <i class="bi bi-info-circle" title="Re-use the training data of a previous assessment year's model to reduce the need for new labels. Training data can be generated for a given year by clicking the 'Download Training Data' button once you have created and saved your labels."></i></li>
-  </ol>
-  <div style="margin-left: 20px; margin-bottom: 1rem;">
-    {% gizmo n_samples %}
-  </div>
-  <input type="file" id="samples-file" name="samples-file" accept=".geojson" form="label-form" style="margin-left: 20px; padding-bottom: 1rem;">
-   -->
 
   <ol start="4">
     <li>Click <a style="color: #5cb85c;"><i class="bi bi-chevron-right"></i> Save Labels</a> to save your labelling progress <i class="bi bi-info-circle" title="Save your drawn or uploaded labels for this particular assessment year by clicking the 'Save Labels' button in the bottom right."></i></li>
@@ -76,7 +67,6 @@
 {% block app_actions %}
   
   {% gizmo labels_button %}
-  <!-- {% gizmo samples_button %} -->
   {% gizmo delete_button %}
   {% gizmo save_button %}
   <form id="next-form" method="post" enctype="multipart/form-data">

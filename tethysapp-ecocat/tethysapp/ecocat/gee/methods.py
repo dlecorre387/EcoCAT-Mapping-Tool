@@ -351,7 +351,6 @@ def get_image_url(user_workspace: str, year: str, layer: str, tile_scale: int = 
     
     # If the user has provided min/max values
     if (min_val is not None and max_val is not None) and (min_val != '' and max_val != ''):
-        # image = image.updateMask(image.gte(float(min_val))).updateMask(image.lte(float(max_val)))
         if layer == 'dem':
             image = image.visualize(min=float(min_val), max=float(max_val), palette=['blue', 'green', 'yellow', 'brown', 'white']).divide(255).multiply(ee.Terrain.hillshade(image).divide(255))
             vis_params['min'], vis_params['max'] = 0.0, 1.0
@@ -388,7 +387,6 @@ def get_image_url(user_workspace: str, year: str, layer: str, tile_scale: int = 
         min_val, max_val = float(min_max[1]), float(min_max[0])
 
         # Mask the image by it's min and max values
-        # image = image.updateMask(image.gte(float(min_val))).updateMask(image.lte(float(max_val)))
         if layer == 'dem':
             image = image.visualize(min=float(min_val), max=float(max_val), palette=['blue', 'green', 'yellow', 'brown', 'white']).divide(255).multiply(ee.Terrain.hillshade(image).divide(255))
             vis_params['min'], vis_params['max'] = 0.0, 1.0
@@ -488,7 +486,6 @@ def get_samples_collection(user_workspace: str, year: str, tile_scale: int) -> s
     elif ecosystem['features'][0]['geometry']['type'] == 'Polygon':
         ecosystem_points = ecosystem_collection.map(fixed_grid).flatten()
         ecosystem_samples = training_data.sampleRegions(collection=ecosystem_points, tileScale=tile_scale, geometries=True)
-        # ecosystem_samples = ecosystem_samples.filter(ee.Filter.contains(leftValue=ecosystem_collection.geometry(), rightField='.geo'))
 
     # If the background was labelled using points
     if background['features'][0]['geometry']['type'] == 'Point':
@@ -498,7 +495,6 @@ def get_samples_collection(user_workspace: str, year: str, tile_scale: int) -> s
     elif background['features'][0]['geometry']['type'] == 'Polygon':
         background_points = background_collection.map(fixed_grid).flatten()
         background_samples = training_data.sampleRegions(collection=background_points, tileScale=tile_scale, geometries=True)
-        # background_samples = background_samples.filter(ee.Filter.contains(leftValue=background_collection.geometry(), rightField='.geo'))
 
     # Assign the class label to each sample
     ecosystem_samples = ecosystem_samples.map(lambda feat: feat.set('class', 1))
@@ -766,14 +762,7 @@ def export_classification(user_workspace: str, user_name: str, year: str, tile_s
     else:
         raise NotImplementedError("Chosen classification method not supported")
     
-    # Define the region for the export
-    # region = ee.FeatureCollection(roi_geoms).geometry()
-
-    # # Get the standard deviation of the probabilites
-    # prob_std = ee.Number(probabilities.reduceRegion(reducer=ee.Reducer.stdDev(), geometry=region.bounds(), maxPixels=1e13, tileScale=tile_scale).get('classification'))
-
     # Threshold the probability map
-    # classification = ee.Image([probabilities.gte(thresh.add(prob_std)), probabilities.gte(thresh), probabilities.gte(thresh.subtract(prob_std))]).toUint8().rename(['min', 'opt', 'max'])
     classification = probabilities.gte(0.5).toUint8().rename('ecosystem')
 
     # Set all masked pixels to zero
@@ -798,18 +787,17 @@ def export_classification(user_workspace: str, user_name: str, year: str, tile_s
     # Define the filename
     file_name = f'classification_{user_name}_{year}_{method}_{model_name}_{scale}m'
 
-    # Export the classification
-    task = ee.batch.Export.image.toCloudStorage(image=classification,
-                                                description=f"EcoCAT classification export for {user_name} at {dt.today()}",
-                                                bucket='ecocat-classifications',
-                                                fileNamePrefix=file_name,
-                                                region=ee.FeatureCollection(roi).geometry().bounds(),
-                                                scale=scale,
-                                                crs='EPSG:4326',
-                                                maxPixels=1e13,
-                                                fileFormat='GeoTIFF',
-                                                formatOptions={'cloudOptimized': True, 'noData': 0.0},
-                                                skipEmptyTiles=True)
+    # Export the classification to Google Drive
+    task = ee.batch.Export.image.toDrive(image=classification,
+                                        description=f"EcoCAT classification export for {user_name} at {dt.today()}",
+                                        fileNamePrefix=file_name,
+                                        region=ee.FeatureCollection(roi).geometry().bounds(),
+                                        scale=scale,
+                                        crs='EPSG:4326',
+                                        maxPixels=1e13,
+                                        fileFormat='GeoTIFF',
+                                        formatOptions={'cloudOptimized': True, 'noData': 0.0},
+                                        skipEmptyTiles=True)
 
     # Start the export task
     task.start()
