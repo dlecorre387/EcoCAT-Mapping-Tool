@@ -1,0 +1,28 @@
+{% extends tethys_app.package|add:"/base.html" %}
+{% load static tethys %}
+
+{% block app_navigation_items %}
+  {% url tethys_app|url:'home' as home_url %}
+  {% url tethys_app|url:'input' as input_url %}
+  <!-- {% url tethys_app|url:'occurrences' as occurrences_url %} -->
+  {% url tethys_app|url:'labelling' as labelling_url %}
+  {% url tethys_app|url:'classification' as classification_url %}
+  <li class="nav-item title"><h2><i class="bi bi-list"></i> Navigation</h2></li>
+  <li class="nav-item"><a class="nav-link{% if request.path == input_url %} active{% endif %}" href="{{ input_url }}" style="font-size: 1rem;"><b>Step 1:</b>&nbsp;&nbsp;User Input</a></li>
+  <li class="nav-item"><a class="nav-link{% if request.path == labelling_url %} active{% endif %}" href="{{ labelling_url }}" style="font-size: 1rem;"><b>Step 2:</b>&nbsp;&nbsp;Labelling</a></li>
+  <li class="nav-item"><a class="nav-link{% if request.path == classification_url %} active{% endif %}" href="{{ classification_url }}" style="font-size: 1rem;"><b>Step 3:</b>&nbsp;&nbsp;Mapping</a></li>
+  <!-- <li class="nav-item"><a class="nav-link{% if request.path == occurrences_url %} active{% endif %}" href="{{ occurrences_url }}" style="font-size: 1rem;"><b>Optional Step:</b>&nbsp;&nbsp;Occurrences</a></li> -->
+{% endblock %}
+
+{% block app_content %}
+  <h1>Welcome to the EcoCAT Mapping Tool!</h1>
+  <h3>A user-friendly tool for creating high-resolution maps of terrestrial ecosystems over the past four decades - thanks to a combination of expert user-knowledge, global satellite datasets and machine learning.</h3>
+  <div style="text-align: center"><img width="90%" src="{% static tethys_app|public:'images/EcoCAT_Home_Page.svg' %}"></div>
+{% endblock %}
+
+{% block app_actions %}
+  <form id="next-form" method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {% gizmo next_button %}
+  </form>
+{% endblock %}

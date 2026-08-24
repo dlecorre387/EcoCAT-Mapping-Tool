@@ -1,0 +1,51 @@
+/* Map Format */
+#app-content-wrapper #app-content {
+    padding-bottom: 0;
+}
+
+#app-content-wrapper #app-content #inner-app-content {
+    height: 100%;
+    padding: 0;
+    position: relative !important;
+}
+
+#app-content-wrapper #app-content #app-actions {
+    padding-right: 15px !important;
+}
+
+#map_view_outer_container {
+    position: relative;
+    padding-bottom: 50px;
+    height: 100%;
+    width: 100%;
+}
+
+#overlay-form {
+    position: relative;
+    height: 100%;
+    width: 100%;
+}
+
+#label-form {
+    position: relative;
+    height: 100%;
+    width: 100%;
+}
+
+#ecosystem-form {
+    position: relative;
+    height: 100%;
+    width: 100%;
+}
+
+#background-form {
+    position: relative;
+    height: 100%;
+    width: 100%;
+}
+
+#input-form {
+    position: relative;
+    height: 100%;
+    width: 100%;
+}

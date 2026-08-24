@@ -1,0 +1,101 @@
+{% extends tethys_app.package|add:"/base.html" %}
+{% load static tethys %}
+
+{% block app_navigation_items %}
+  <h2><i class="bi bi-map-fill"></i> Mapping</h2>
+  
+  <ol>
+    <li>Select an assessment year <i class="bi bi-info-circle" title="Select one of your chosen assessment years for which you would like to produce an ecosystem map."></i></li>
+  </ol>
+  {% gizmo year_input %}
+
+  <ol start="2">
+    <li>Display some satellite data <i class="bi bi-info-circle" title="Display some satellite data on the map that could aid with validating your ecosystem map, such as a visible image, NDVI or elevation. This may take 1-2 minutes to load for the first time as we collect the images, so please wait. If you see gaps in the image, then these pixels fall outside of the current min/max range."></i></li>
+  </ol>
+  <p>Pick the type of satellite data:</p>
+  {% gizmo layer_input %}
+  <p>(Optional) Change the contrast:</p>
+  <div style="width: 230px; margin-left: 20px; margin-bottom: 1rem;">
+    {% gizmo min_input %}
+    {% gizmo max_input %}
+  </div>
+  {% gizmo load_button %}
+
+  <ol start="3">
+    <li>Click <a style="color: #5cb85c"><i class="bi bi-gear-wide-connected"></i> Classify Ecosystem</a> to map the ecosystem <i class="bi bi-info-circle" title="By clicking 'Classify Ecosystem' in the bottom right, you will train a machine learning model on you ecosystem and background labels to map the entire RoI for this chosen year."></i></li>
+  </ol>
+
+  <!-- <ol start="4">
+    <li>(Optional) Select an overlay <i class="bi bi-info-circle" title="Select or upload an overlay that may assist with validating the classification."></i></li>
+  </ol>
+  <p>Choose from a catalogue:</p>
+  <form id="overlay-form" method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {% gizmo asset_input %}
+    {% gizmo level1_input %}
+    {% gizmo level2_input %}
+  </form>
+  <p><b>OR</b> Upload a GeoJSON:</p>
+  <input type="file" id="overlay-file" name="overlay-file" accept=".geojson" form="overlay-form" style="margin-left: 20px; margin-right: 20px; padding-bottom: 1rem;">
+  {% gizmo overlay_button %} -->
+  
+  <ol start="4">
+    <li>Click <a style="color: #337ab7"><i class="bi bi-cloud-upload-fill"></i> Export Map</a> to retrieve the map from GEE <i class="bi bi-info-circle" title="Once your are content with the visual and quantitative accuracy of your ecosystem map, you can export it from the Google Earth Engine (GEE) servers where it currently sits to Google Cloud Storage, from which you will then be able to download it as a GeoTIFF."></i></li>
+  </ol>
+
+  <ol start="5">
+    <li>Repeat steps 1-4 for all assessment years <i class="bi bi-info-circle" title="While you are waiting for you export to finish, you can repeat this process for your remaining assessment years."></i></li>
+  </ol>
+
+{% endblock %}
+
+{% block app_content %}
+  <div id="loader">
+    <img src="{% static tethys_app|public:'images/loading.svg' %}">
+  </div>
+  <div id="map-loader">
+    <img width=50% height=50% src="{% static tethys_app|public:'images/map_loading.svg' %}">
+  </div>
+  <div id="img-loader">
+    <img src="{% static tethys_app|public:'images/loading_image.svg' %}">
+  </div>
+  <div id="down-loader">
+    <img src="{% static tethys_app|public:'images/downloading_data.svg' %}">
+  </div>
+  <div id="metric-loader">
+    <img src="{% static tethys_app|public:'images/calculating_accuracy.svg' %}">
+  </div>
+  <div id="classify-loader">
+    <img src="{% static tethys_app|public:'images/classifying_ecosystem.svg' %}">
+  </div>
+  <div id="export-loader">
+    <img src="{% static tethys_app|public:'images/exporting_geotiff.svg' %}">
+  </div>
+  <form id="overlay-form" method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {% gizmo map_view %}
+  </form>
+{% endblock %}
+
+{% block after_app_content %}
+  <div id="assets" data-assets="{{ assets|jsonify }}"></div>
+{% endblock %}
+
+{% block app_actions %}
+  {% gizmo label_button %}
+  {% gizmo metrics_button %}
+  {% gizmo classify_button %}
+  {% gizmo export_button %}
+{% endblock %}
+
+{% block content_dependent_styles %}
+  {{ block.super }}
+  <link rel="stylesheet" href="{% static tethys_app|public:'css/loader.css' %}" />
+  {{ block.super }}
+  <link rel="stylesheet" href="{% static tethys_app|public:'css/map.css' %}" />
+{% endblock %}
+
+{% block scripts %}
+  {{ block.super }}
+  <script src="{% static tethys_app|public:'js/classification.js' %}" type="text/javascript"></script>
+{% endblock %}
