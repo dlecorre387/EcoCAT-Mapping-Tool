@@ -2,10 +2,7 @@
 
 ## A user-friendly web-app for automated time-series ecosystem mapping using satellite data and machine learning
 
-<video alt="Demonstration of the EcoCAT Mapping Tool on Cornish Lowland Heathland" width="100%" height="auto" controls>
-    <source src="images/EcoCAT_Demo.mp4" type="video/mp4">
-</video>
-
+![Demonstration of the EcoCAT Mapping Tool on Cornish Lowland Heathland](images/EcoCAT_Demo.gif)
 **Figure 1:** A fly-through of the EcoCAT Mapping Tool being used to map Lowland Heathland in Cornwall, United Kingdom.
 
 ## 1. Introduction
@@ -51,10 +48,7 @@ Recommended installers can be downloaded using the links below:
 
 On Windows, search for 'Anaconda Prompt' in the start menu and open it. Anaconda Prompt is a CLI for Windows versions of Anaconda and Miniconda. Or to save having to open the start menu each time, you can follow the video below (**Figure 3**) to make Anaconda Prompt your default terminal. For Linux and Mac users, open the terminal.
 
-<video alt="Screen-recording of process of opening an Anaconda Prompt" width="100%" height="auto" controls>
-    <source src="images/Anaconda_Prompt.mp4" type="video/mp4">
-</video>
-
+![Screen-recording of process of opening an Anaconda Prompt](images/Anaconda_Prompt.gif)
 **Figure 3:** The process of opening a terminal, setting the default terminal to an Anaconda Prompt, and then checking the conda version on Windows 11.
 
 Verify that your installation of conda has worked by typing out and running the following in the Anaconda Prompt/terminal to see which version you have installed.
@@ -239,10 +233,7 @@ In this page (**Figure 10**), the EcoCAT Mapping Tool will retrieve the spectral
                 
     Whilst you are waiting for your ecosystem map to finish exporting, you can repeat this process for you other assessment years.
 
-<video alt="Screen-recording of the 'Mapping' page" width="100%" height="auto" controls>
-    <source src="images/Mapping.mp4" type="video/mp4">
-</video>
-
+![Screen-recording of the 'Mapping' page](images/Mapping.gif)
 **Figure 10:** The 'Mapping' page of the EcoCAT Mapping Tool, showing a map of Lowland Heathland in a region of Cornwall, United Kingdom. The map is blinked to show the ecosystem units underneath, and the ecosystem probability map (high and low probabilities are green and red, respectively) is also displayed.
 
 ### 4.4. (Optional) Perform Ecosystem Risk Assessment using the EcoCAT RLE Assessment Tool
