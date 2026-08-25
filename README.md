@@ -63,7 +63,7 @@ The next step is to create a new conda environment into which we can install the
 conda create -n tethys
 ```
 
-Lastly, we need to activate this new conda enviroment to place us within it, as currently we are in the `base` environment.
+Lastly, we need to activate this new conda enviroment to place us within it, as currently we are in the `base` environment. It is not advised to install packages to the `base` environment, unless absolutely necessary, to avoid having to reintall Anaconda entirely in case things break.
 
 ```bash
 conda activate tethys
@@ -112,7 +112,7 @@ Once we are in the `tethysapp-ecocat` folder, your Anaconda Prompt/terminal shou
 - On Windows: `(tethys) C:\Users\username\path\to\tethysapp-ecocat>`
 - On Linux: `(tethys) username:path/to/tethysapp-ecocat$`
 
-Lastly, we can run the following command in the Anaconda Prompt/terminal to begin installing the EcoCAT Mapping Tool to you Tethys Portal, along with all of its dependancies and settings.
+Lastly, we can run the following command in the Anaconda Prompt/terminal (with the `tethys` environment activated) to begin installing the EcoCAT Mapping Tool to you Tethys Portal, along with all of its dependancies and settings.
 
 ```bash
 tethys install
@@ -147,7 +147,6 @@ Once you have created a new Google Cloud Project, or if you already have one tha
 Now that you have created a Google Cloud Project that has access to the GEE Python API, or if you already had one to start with, we need to authenticate it before running the EcoCAT Mapping Tool. This can be done using the GEE command line tool `earthengine` by running the following in an Anaconda Prompt/terminal (with the `tethys` environment activated) before starting the EcoCAT Mapping Tool (with `tethys start`, see the next section).
 
 ```bash
-conda activate tethys
 earthengine authenticate
 ```
 
