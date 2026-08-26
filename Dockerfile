@@ -3,6 +3,8 @@ FROM tethysplatform/tethys-core:latest
 
 # Define some environment variables
 ENV DEBUG="False"
+ENV ALLOWED_HOSTS="\"[localhost, 14.89.75.157]\""
+ENV CRSF_TRUST_ORIGINS="\"[http://localhost, http://14.89.75.157]\""
 ENV SITE_TITLE="EcoCAT"
 ENV APPS_LIBRARY_TITLE="Tools"
 ENV FAVICON="tethys_portal/images/kew_logo_square_black.png"
@@ -33,7 +35,7 @@ ENV MULTIPLE_APP_MODE="True"
 ENV NGINX_PORT=8080
 
 # Copy all app files
-COPY tethysapp-ecocat-gcp ${TETHYS_HOME}/apps/tethysapp-ecocat
+COPY tethysapp-ecocat ${TETHYS_HOME}/apps/tethysapp-ecocat
 
 # Activate the Conda environment 'tethys'
 ARG MAMBA_DOCKERFILE_ACTIVATE=1
@@ -42,7 +44,7 @@ ARG MAMBA_DOCKERFILE_ACTIVATE=1
 RUN cd ${TETHYS_HOME}/apps/tethysapp-ecocat && tethys install --no-db-sync
 
 # Expose port 8080
-EXPOSE 8080
+EXPOSE 80
 
 # Set the work directory to the Tethys home directory
 WORKDIR ${TETHYS_HOME}
