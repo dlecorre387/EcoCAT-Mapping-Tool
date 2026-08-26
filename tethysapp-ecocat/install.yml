@@ -16,6 +16,7 @@ requirements:
     - shapely
     - geojson
     - pyproj
+    - pygbif
   npm:
 
 post:

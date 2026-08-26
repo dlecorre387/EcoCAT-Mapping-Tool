@@ -1,5 +1,4 @@
 import os
-import rasterio
 from django.contrib import messages
 from django.http import JsonResponse, HttpResponseNotAllowed
 from tethys_sdk.gizmos import Button, MapView, MVDraw, MVView, RangeSlider, SelectInput, TextInput, MVLayer, MVLegendClass
