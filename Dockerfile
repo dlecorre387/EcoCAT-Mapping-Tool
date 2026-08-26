@@ -3,8 +3,8 @@ FROM tethysplatform/tethys-core:latest
 
 # Define some environment variables
 ENV DEBUG="False"
-ENV ALLOWED_HOSTS="\"[localhost, 14.89.75.157]\""
-ENV CRSF_TRUST_ORIGINS="\"[http://localhost, http://14.89.75.157]\""
+ENV ALLOWED_HOSTS="\"[localhost, 34.89.75.157]\""
+ENV CRSF_TRUST_ORIGINS="\"[http://localhost, http://34.89.75.157]\""
 ENV SITE_TITLE="EcoCAT"
 ENV APPS_LIBRARY_TITLE="Tools"
 ENV FAVICON="tethys_portal/images/kew_logo_square_black.png"
@@ -30,8 +30,6 @@ ENV FEATURE_2_BODY="Ecosystem maps produced by the Mapping Tool can then be inpu
 ENV FEATURE_3_HEADING="Help conserve global ecosystems!"
 ENV FEATURE_3_IMAGE=""
 ENV FEATURE_3_BODY="EcoCAT closely follows the IUCN Red List of Ecosystems (RLE) guidelines to enable accurate and scalable assessments of the state of the world's ecosystems."
-ENV ENABLE_OPEN_SIGNUP="True"
-ENV MULTIPLE_APP_MODE="True"
 ENV NGINX_PORT=8080
 
 # Copy all app files

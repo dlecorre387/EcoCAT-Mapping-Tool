@@ -10,15 +10,12 @@ requirements:
   skip: false
   conda:
     channels:
-    - conda-forge
     packages:
+  pip:
     - earthengine-api
     - shapely
     - geojson
-    - rasterio
     - pyproj
-  pip:
-    - pygbif
   npm:
 
 post:
