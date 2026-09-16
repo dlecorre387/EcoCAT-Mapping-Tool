@@ -1,11 +1,11 @@
 # Build using the base Tethys Platform image (latest build)
-FROM tethysplatform/tethys-core:latest
+FROM tethysplatform/tethys-core:4.3.8-py3.12-dj5.2
 
 # Define some environment variables
 ENV DEBUG="False"
 ENV ENABLE_OPEN_SIGNUP="False"
-ENV ALLOWED_HOSTS="\"[localhost, 34.89.75.157]\""
-ENV CRSF_TRUST_ORIGINS="\"[http://localhost, http://34.89.75.157]\""
+ENV ALLOWED_HOSTS="\"[localhost, 34.89.123.66, map.ecocatproject.org]\""
+ENV CRSF_TRUST_ORIGINS="\"[http://localhost, http://34.89.123.66, https://map.ecocatproject.org]\""
 ENV SITE_TITLE="EcoCAT"
 ENV APPS_LIBRARY_TITLE="Tools"
 ENV FAVICON="tethys_portal/images/kew_logo_square_black.png"
@@ -20,18 +20,11 @@ ENV PRIMARY_TEXT_HOVER_COLOR='#ffffff'
 ENV SECONDARY_TEXT_COLOR='#000000'
 ENV SECONDARY_TEXT_HOVER_COLOR='#000000'
 ENV FOOTER_COPYRIGHT="Copyright © 2026 Royal Botanic Gardens, Kew"
-ENV BLURB_TEXT="EcoCAT is dedicated to making accurate ecosystem risk assessment as accessible as possible."
-ENV HERO_TEXT="Welcome to EcoCAT!"
-ENV FEATURE_1_HEADING="Map your ecosystem through time!"
-ENV FEATURE_1_IMAGE=""
-ENV FEATURE_1_BODY="With your expert knowledge, the EcoCAT Mapping Tool maps ecosystems through time by training machine learning models on satellite data available through Google Earth Engine."
-ENV FEATURE_2_HEADING="Assess its risk of collapse!"
-ENV FEATURE_2_IMAGE=""
-ENV FEATURE_2_BODY="Ecosystem maps produced by the Mapping Tool can then be inputted into the EcoCAT Assessment Tool to determine the ecosystem's status and its risk of collapse."
-ENV FEATURE_3_HEADING="Help conserve global ecosystems!"
-ENV FEATURE_3_IMAGE=""
-ENV FEATURE_3_BODY="EcoCAT closely follows the IUCN Red List of Ecosystems (RLE) guidelines to enable accurate and scalable assessments of the state of the world's ecosystems."
 ENV NGINX_PORT=8080
+ENV BYPASS_TETHYS_HOME_PAGE="True"
+ENV STANDALONE_APP="ecocat"
+ENV MULTIPLE_APP_MODE="False"
+ENV DATA_UPLOAD_MAX_MEMORY_SIZE=10000000
 
 # Copy all app files
 COPY tethysapp-ecocat-gcp ${TETHYS_HOME}/apps/tethysapp-ecocat
@@ -40,10 +33,10 @@ COPY tethysapp-ecocat-gcp ${TETHYS_HOME}/apps/tethysapp-ecocat
 ARG MAMBA_DOCKERFILE_ACTIVATE=1
 
 # Change to the app directory and install it to the Tethys Portal
-RUN cd ${TETHYS_HOME}/apps/tethysapp-ecocat && tethys install --no-db-sync
+RUN cd ${TETHYS_HOME}/apps/tethysapp-ecocat && tethys install
 
 # Expose port 8080
-EXPOSE 80
+EXPOSE 8080/tcp
 
 # Set the work directory to the Tethys home directory
 WORKDIR ${TETHYS_HOME}

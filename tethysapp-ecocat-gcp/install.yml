@@ -12,6 +12,8 @@ requirements:
     channels:
     packages:
   pip:
+    - numpy
+    - oauth2client
     - earthengine-api
     - shapely
     - geojson
