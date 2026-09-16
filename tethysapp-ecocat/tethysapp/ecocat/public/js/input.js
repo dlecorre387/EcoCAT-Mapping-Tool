@@ -268,10 +268,13 @@ var INPUT = (function() {
         window.onload = function() {
             xhr.abort();
         };
+        window.onbeforeunload = function() {
+            xhr.abort();
+        };
 
         // Check if the AJAX request was aborted
         xhr.fail(function(jqXHR, textStatus) {
-            alert("Please wait for the tool to finish loading before clicking other buttons");
+            alert("Please try to wait for the tool to finish loading before clicking other buttons");
             $('#down-loader').removeClass('show');
         });
 

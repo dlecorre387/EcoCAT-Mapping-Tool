@@ -213,8 +213,8 @@ def get_image_url(user_workspace: str, year: str, layer: str, tile_scale: int = 
                     raise ValueError(f"Invalid year. Got {year}")
 
                 # Find the first quartile (Q1) of the observation counts per pixel across the RoI
-                Q1_count = collection.select('R').count().reduceRegion(geometry=roi_geom, reducer=ee.Reducer.percentile([25]), maxPixels=1e13, scale=scale, tileScale=tile_scale).get('R').getInfo()
-
+                Q1_count = collection.select('R').count().reduceRegion(geometry=roi_geom, reducer=ee.Reducer.percentile([25]), maxPixels=1e13, scale=10*scale, tileScale=tile_scale).get('R').getInfo()
+                
                 # Check that the count was correctly calculated
                 if Q1_count is None:
                     raise EEException("Number of observations per pixel in the RoI could not be checked")
@@ -231,7 +231,7 @@ def get_image_url(user_workspace: str, year: str, layer: str, tile_scale: int = 
                         start_year = int(year) - window if int(year) - window >= 1982 else 1982
                         end_year = int(year) + window if int(year) + window <= 2025 else 2025
                         if int(year) < 2017:
-                            warning = f"To ensure that there is sufficient data, assessment will occurr between {start_year} and {end_year} inclusive-inclusive"
+                            warning = f"To ensure that there is sufficient data, assessment will occur between {start_year} and {end_year} inclusive-inclusive"
                         else:
                             warning = f"To preserve quality, the image shown on screen will include data from {start_year} to {end_year} inclusive-inclusive"
                     break
@@ -252,7 +252,7 @@ def get_image_url(user_workspace: str, year: str, layer: str, tile_scale: int = 
 
             else:
                 raise ValueError(f"Invalid year. Got {year}")
-                
+        
         # Median of visible bands
         if layer == 'visible':
             image = collection.median()
@@ -348,10 +348,13 @@ def get_image_url(user_workspace: str, year: str, layer: str, tile_scale: int = 
             samples = get_user_input(user_workspace.path, 'samples', year)
             image = get_dissimilarity_index(year=year, roi_geom=roi_geom, collection=collection, ecosystem=ecosystem, background=background, samples=samples, scale=scale, model_name=model_name, aoa=False, tile_scale=tile_scale)
             vis_params['palette'] = ['red', 'white', 'green']
+
+    # Reproject the image if the scale is large and MODIS is not being used
+    if scale > 100:
+        image = image.reproject(crs='EPSG:4326', scale=scale)
     
     # If the user has provided min/max values
     if (min_val is not None and max_val is not None) and (min_val != '' and max_val != ''):
-        # image = image.updateMask(image.gte(float(min_val))).updateMask(image.lte(float(max_val)))
         if layer == 'dem':
             image = image.visualize(min=float(min_val), max=float(max_val), palette=['blue', 'green', 'yellow', 'brown', 'white']).divide(255).multiply(ee.Terrain.hillshade(image).divide(255))
             vis_params['min'], vis_params['max'] = 0.0, 1.0
@@ -377,7 +380,7 @@ def get_image_url(user_workspace: str, year: str, layer: str, tile_scale: int = 
     else:
 
         # Get the min/max values of the layer
-        min_max = image.reduceRegion(geometry=roi_geom, reducer=ee.Reducer.minMax(), maxPixels=1e13, tileScale=tile_scale)
+        min_max = image.reduceRegion(geometry=roi_geom, reducer=ee.Reducer.minMax(), maxPixels=1e13, tileScale=tile_scale, scale=10*scale)
         min_max = ee.Dictionary(min_max).values().getInfo()
 
         # Check that there an error has not occurred
@@ -388,7 +391,6 @@ def get_image_url(user_workspace: str, year: str, layer: str, tile_scale: int = 
         min_val, max_val = float(min_max[1]), float(min_max[0])
 
         # Mask the image by it's min and max values
-        # image = image.updateMask(image.gte(float(min_val))).updateMask(image.lte(float(max_val)))
         if layer == 'dem':
             image = image.visualize(min=float(min_val), max=float(max_val), palette=['blue', 'green', 'yellow', 'brown', 'white']).divide(255).multiply(ee.Terrain.hillshade(image).divide(255))
             vis_params['min'], vis_params['max'] = 0.0, 1.0
@@ -453,7 +455,8 @@ def get_samples_collection(user_workspace: str, year: str, tile_scale: int) -> s
 
         # Get the Landsat collection
         training_data = get_landsat_composite(year=year, 
-                                            roi_geom=roi_geom, 
+                                            roi_geom=roi_geom,
+                                            scale=scale,
                                             window=window, 
                                             tile_scale=tile_scale)
 
@@ -488,7 +491,6 @@ def get_samples_collection(user_workspace: str, year: str, tile_scale: int) -> s
     elif ecosystem['features'][0]['geometry']['type'] == 'Polygon':
         ecosystem_points = ecosystem_collection.map(fixed_grid).flatten()
         ecosystem_samples = training_data.sampleRegions(collection=ecosystem_points, tileScale=tile_scale, geometries=True)
-        # ecosystem_samples = ecosystem_samples.filter(ee.Filter.contains(leftValue=ecosystem_collection.geometry(), rightField='.geo'))
 
     # If the background was labelled using points
     if background['features'][0]['geometry']['type'] == 'Point':
@@ -498,7 +500,6 @@ def get_samples_collection(user_workspace: str, year: str, tile_scale: int) -> s
     elif background['features'][0]['geometry']['type'] == 'Polygon':
         background_points = background_collection.map(fixed_grid).flatten()
         background_samples = training_data.sampleRegions(collection=background_points, tileScale=tile_scale, geometries=True)
-        # background_samples = background_samples.filter(ee.Filter.contains(leftValue=background_collection.geometry(), rightField='.geo'))
 
     # Assign the class label to each sample
     ecosystem_samples = ecosystem_samples.map(lambda feat: feat.set('class', 1))
@@ -766,14 +767,7 @@ def export_classification(user_workspace: str, user_name: str, year: str, tile_s
     else:
         raise NotImplementedError("Chosen classification method not supported")
     
-    # Define the region for the export
-    # region = ee.FeatureCollection(roi_geoms).geometry()
-
-    # # Get the standard deviation of the probabilites
-    # prob_std = ee.Number(probabilities.reduceRegion(reducer=ee.Reducer.stdDev(), geometry=region.bounds(), maxPixels=1e13, tileScale=tile_scale).get('classification'))
-
     # Threshold the probability map
-    # classification = ee.Image([probabilities.gte(thresh.add(prob_std)), probabilities.gte(thresh), probabilities.gte(thresh.subtract(prob_std))]).toUint8().rename(['min', 'opt', 'max'])
     classification = probabilities.gte(0.5).toUint8().rename('ecosystem')
 
     # Set all masked pixels to zero
@@ -797,7 +791,7 @@ def export_classification(user_workspace: str, user_name: str, year: str, tile_s
 
     # Define the filename
     file_name = f'classification_{user_name}_{year}_{method}_{model_name}_{scale}m'
-
+    
     # Export the classification
     task = ee.batch.Export.image.toCloudStorage(image=classification,
                                                 description=f"EcoCAT classification export for {user_name} at {dt.today()}",

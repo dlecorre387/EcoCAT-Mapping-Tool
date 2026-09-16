@@ -213,8 +213,8 @@ def get_image_url(user_workspace: str, year: str, layer: str, tile_scale: int = 
                     raise ValueError(f"Invalid year. Got {year}")
 
                 # Find the first quartile (Q1) of the observation counts per pixel across the RoI
-                Q1_count = collection.select('R').count().reduceRegion(geometry=roi_geom, reducer=ee.Reducer.percentile([25]), maxPixels=1e13, scale=scale, tileScale=tile_scale).get('R').getInfo()
-
+                Q1_count = collection.select('R').count().reduceRegion(geometry=roi_geom, reducer=ee.Reducer.percentile([25]), maxPixels=1e13, scale=10*scale, tileScale=tile_scale).get('R').getInfo()
+                
                 # Check that the count was correctly calculated
                 if Q1_count is None:
                     raise EEException("Number of observations per pixel in the RoI could not be checked")
@@ -231,7 +231,7 @@ def get_image_url(user_workspace: str, year: str, layer: str, tile_scale: int = 
                         start_year = int(year) - window if int(year) - window >= 1982 else 1982
                         end_year = int(year) + window if int(year) + window <= 2025 else 2025
                         if int(year) < 2017:
-                            warning = f"To ensure that there is sufficient data, assessment will occurr between {start_year} and {end_year} inclusive-inclusive"
+                            warning = f"To ensure that there is sufficient data, assessment will occur between {start_year} and {end_year} inclusive-inclusive"
                         else:
                             warning = f"To preserve quality, the image shown on screen will include data from {start_year} to {end_year} inclusive-inclusive"
                     break
@@ -252,7 +252,7 @@ def get_image_url(user_workspace: str, year: str, layer: str, tile_scale: int = 
 
             else:
                 raise ValueError(f"Invalid year. Got {year}")
-                
+        
         # Median of visible bands
         if layer == 'visible':
             image = collection.median()
@@ -348,6 +348,10 @@ def get_image_url(user_workspace: str, year: str, layer: str, tile_scale: int = 
             samples = get_user_input(user_workspace.path, 'samples', year)
             image = get_dissimilarity_index(year=year, roi_geom=roi_geom, collection=collection, ecosystem=ecosystem, background=background, samples=samples, scale=scale, model_name=model_name, aoa=False, tile_scale=tile_scale)
             vis_params['palette'] = ['red', 'white', 'green']
+
+    # Reproject the image if the scale is large and MODIS is not being used
+    if scale > 100:
+        image = image.reproject(crs='EPSG:4326', scale=scale)
     
     # If the user has provided min/max values
     if (min_val is not None and max_val is not None) and (min_val != '' and max_val != ''):
@@ -376,7 +380,7 @@ def get_image_url(user_workspace: str, year: str, layer: str, tile_scale: int = 
     else:
 
         # Get the min/max values of the layer
-        min_max = image.reduceRegion(geometry=roi_geom, reducer=ee.Reducer.minMax(), maxPixels=1e13, tileScale=tile_scale)
+        min_max = image.reduceRegion(geometry=roi_geom, reducer=ee.Reducer.minMax(), maxPixels=1e13, tileScale=tile_scale, scale=10*scale)
         min_max = ee.Dictionary(min_max).values().getInfo()
 
         # Check that there an error has not occurred
@@ -451,7 +455,8 @@ def get_samples_collection(user_workspace: str, year: str, tile_scale: int) -> s
 
         # Get the Landsat collection
         training_data = get_landsat_composite(year=year, 
-                                            roi_geom=roi_geom, 
+                                            roi_geom=roi_geom,
+                                            scale=scale,
                                             window=window, 
                                             tile_scale=tile_scale)
 

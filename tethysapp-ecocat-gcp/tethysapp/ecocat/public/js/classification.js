@@ -422,10 +422,13 @@ var MAPPING = (function() {
         window.onload = function() {
             xhr.abort();
         };
+        window.onbeforeunload = function() {
+            xhr.abort();
+        };
 
         // Check if the AJAX request was aborted
         xhr.fail(function(jqXHR, textStatus) {
-            alert("Please wait for the tool to finish loading before clicking other buttons");
+            alert("Please try to wait for the tool to finish loading before clicking other buttons");
             $('#metric-loader').removeClass('show');
         });
 
@@ -505,10 +508,13 @@ var MAPPING = (function() {
         window.onload = function() {
             xhr.abort();
         };
+        window.onbeforeunload = function() {
+            xhr.abort();
+        };
 
         // Check if the AJAX request was aborted
         xhr.fail(function(jqXHR, textStatus) {
-            alert("Please wait for the tool to finish loading before clicking other buttons");
+            alert("Please try to wait for the tool to finish loading before clicking other buttons");
             $('#export-loader').removeClass('show');
         });
 
@@ -610,10 +616,13 @@ var MAPPING = (function() {
         window.onload = function() {
             xhr.abort();
         };
+        window.onbeforeunload = function() {
+            xhr.abort();
+        };
 
         // Check if the AJAX request was aborted
         xhr.fail(function(jqXHR, textStatus) {
-            alert("Please wait for the tool to finish loading before clicking other buttons");
+            alert("Please try to wait for the tool to finish loading before clicking other buttons");
             $('#img-loader').removeClass('show');
         });
 
@@ -708,10 +717,13 @@ var MAPPING = (function() {
         window.onload = function() {
             xhr.abort();
         };
+        window.onbeforeunload = function() {
+            xhr.abort();
+        };
 
         // Check if the AJAX request was aborted
         xhr.fail(function(jqXHR, textStatus) {
-            alert("Please wait for the tool to finish loading before clicking other buttons");
+            alert("Please try to wait for the tool to finish loading before clicking other buttons");
             $('#classify-loader').removeClass('show');
         });
 

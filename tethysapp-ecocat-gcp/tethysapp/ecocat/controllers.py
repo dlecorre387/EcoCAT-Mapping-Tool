@@ -2,6 +2,7 @@ import os
 from django.contrib import messages
 from django.http import JsonResponse, HttpResponseNotAllowed
 from tethys_sdk.gizmos import Button, MapView, MVDraw, MVView, RangeSlider, SelectInput, TextInput, MVLayer, MVLegendClass
+from tethys_sdk.permissions import has_permission
 from tethys_sdk.routing import controller
 from .app import App
 from .gee.methods import *
@@ -23,7 +24,7 @@ def home(request):
 
     # Button to move onto the next page
     next_button = Button(name='next',
-                        display_text="Go To First Step - User Input",
+                        display_text="Go To First Step",
                         icon='chevron-double-right',
                         style='primary',
                         attributes={'form': 'next-form',
@@ -45,10 +46,19 @@ def input(request, app_workspace, user_workspace):
     default_roi = ''
     default_asset = default_level1 = default_level2 = None
     default_buffer = 0
+    default_scale = 100
+    if has_permission(request, 'high_res_enabled'):
+        min_scale = 10
+    else:
+        min_scale = 100
 
     # Initialise the options
-    years_options = [(str(i), str(i)) for i in range(2025, 1982, -1)]
-    interval_options = [("Every 10 years", '10'), ("Every 15 years", '15'), ("Every 20 years", '20')]
+    if has_permission(request, 'time_series_enabled'):
+        years_options = [(str(i), str(i)) for i in range(2025, 1982, -1)]
+        interval_options = [("Every 10 years", '10'), ("Every 15 years", '15'), ("Every 20 years", '20')]
+    else:
+        years_options = [("2025", '2025')]
+        interval_options = []
     asset_options = []
     level1_options = []
     level2_options = []
@@ -56,6 +66,7 @@ def input(request, app_workspace, user_workspace):
     # Initialise the errors for displaying above the selector
     years_error = ""
     interval_error = ""
+    scale_error = ""
     asset_error = ""
     level1_error = ""
     level2_error = ""
@@ -64,7 +75,10 @@ def input(request, app_workspace, user_workspace):
     try:
 
         # Define the initial GEE asset options
-        asset_options = [(ROI_ASSETS[k]['display'], k) for k in ROI_ASSETS.keys()]
+        if has_permission(request, 'wgsrpd_enabled'):
+            asset_options = [(ROI_ASSETS[k]['display'], k) for k in ROI_ASSETS.keys()]
+        else:
+            asset_options = [(ROI_ASSETS[k]['display'], k) for k in ROI_ASSETS.keys() if not k.startswith('WGSRPD')]
 
         # Get the user input as a dictionary if it exists
         user_dict = get_user_input(user_workspace.path, 'input')
@@ -85,12 +99,21 @@ def input(request, app_workspace, user_workspace):
                 years_error = "Select one or more assessment years"
                 interval_error = "OR choose an assessment interval"
 
+            # Get the map scale
+            scale = user_dict.get('scale', None)
+            if scale:
+                default_scale = scale
+            else:
+                scale_error = "Please select a map scale"
+
             # Get the previous asset, level 1 and level 2 filter choices
             asset = user_dict.get('asset', None)
             level1 = user_dict.get('level1', None)
             level2 = user_dict.get('level2', None)
             buffer = user_dict.get('buffer', None)
             if all([asset, level1]):
+                if 'WGSRPD' in asset:
+                    level1 = int(level1)
                 if (level2 is not None and level2 != []) and asset == 'FAO_GAUL_adm0':
                     level2_error = "This box cannot be selected if 'Country Boundaries' has been selected"
                 elif (level2 is None or level2 == []) and asset != 'FAO_GAUL_adm0':
@@ -118,7 +141,7 @@ def input(request, app_workspace, user_workspace):
             default_roi = roi
 
         # Check if there has been an error
-        if years_error or interval_error or asset_error or level1_error or level2_error:
+        if years_error or interval_error or asset_error or level1_error or level2_error or scale_error:
             raise ValueError("Please fix errors")
         
         # Handle form submission
@@ -136,6 +159,7 @@ def input(request, app_workspace, user_workspace):
                 default_level1 = user_dict['level1']
                 default_level2 = user_dict['level2']
                 default_buffer = user_dict['buffer']
+                default_scale = user_dict['scale']
 
                 # Get the new level 1 and level 2 options
                 level1_options = [(ROI_ASSETS[default_asset]['level1'][k]['name'], k) for k in ROI_ASSETS[default_asset]['level1'].keys()]
@@ -164,6 +188,7 @@ def input(request, app_workspace, user_workspace):
                 interval = request.POST.get('interval', None)
                 roi = request.POST.get('geometry', None)
                 buffer = int(request.POST.get('buffer', None))
+                scale = int(request.POST.get('scale', None))
                 
                 # Check whether a RoI has been selected from the list of assets
                 asset = request.POST.get('asset', None)
@@ -172,6 +197,10 @@ def input(request, app_workspace, user_workspace):
 
                 # If a RoI has been selected
                 if all([asset, level1]):
+
+                    # Convert key to integer for WGSRPD layers
+                    if 'WGSRPD' in asset:
+                        level1 = int(level1)
 
                     # Check that the level 2 option has not been selected if using 'Country Boundaries'
                     if (level2 is not None and level2 != []) and asset == 'FAO_GAUL_adm0':
@@ -184,6 +213,7 @@ def input(request, app_workspace, user_workspace):
                     else:
 
                         # Check that the RoI options have been changed since the last user input
+                        level2 = None if level2 == [] else level2
                         if (asset != default_asset or level1 != default_level1 or level2 != default_level2) or buffer != default_buffer or roi == '':
                             
                             # Get the RoI from GEE
@@ -232,11 +262,15 @@ def input(request, app_workspace, user_workspace):
                         years = [str(year) for year in range(2025, 1983, -int(interval))]
                     default_years = years
 
+                    # Check that the scale is at least 30m/px if using years before 2017
+                    if scale < 30 and not all([int(year) >= 2017 for year in years]):
+                        scale_error = "Map scale must be >30 m/px if years before 2017 are selected"
+
                 # Validate the RoI input
                 if roi:
 
                     # Convert the RoI into a FeatureCollection
-                    roi, asset_error = check_geom(roi)
+                    roi, asset_error = check_geom(roi, geom_type='roi')
                     if len(roi['features']) == 0:
                         roi = ''
                     
@@ -244,15 +278,20 @@ def input(request, app_workspace, user_workspace):
                     if buffer and not skip_buffer:
 
                         # Buffer the RoI
-                        roi, asset_error = check_geom(buffer_collection(roi, buffer))
+                        roi, asset_error = check_geom(buffer_collection(roi, buffer), geom_type='roi')
                         if len(roi['features']) == 0:
                             roi = ''
 
                     # Check the size of the RoI
-                    n_pixels = check_area(roi, int(App.get_custom_setting('scale')))
+                    n_pixels = check_area(roi, scale)
+                    if calculate_area(roi) > 1e12:
+                        asset_error = "Please use a smaller RoI"
+                        raise ValueError(f"The chosen Region of Interest (RoI) is likely to be too large regardless of the map scale used. Please use a smaller RoI, such as a specific admin region instead of an entire country.")
                     if n_pixels > 5e7:
-                        raise ValueError("There are too many pixels within the chosen Region of Interest (RoI). Please use a smaller RoI, or increase the map scale in the settings page.")
-
+                        asset_error = "Try using a smaller RoI"
+                        scale_error = "Try using a larger map scale"
+                        raise ValueError(f"There are too many pixels within the chosen Region of Interest (RoI). Please use a smaller RoI, or increase the map scale (recommended value for this RoI: {np.ceil(np.sqrt(calculate_area(roi) / 5e7) / 100) * 100:0.0f})")
+                    
                 elif not (asset_error or level1_error or level2_error):
                     asset_error = "The Region of Interest (RoI) is required"
 
@@ -260,13 +299,14 @@ def input(request, app_workspace, user_workspace):
                 default_buffer = buffer
                 if roi and asset_error == "":
                     default_roi = roi
+                    default_scale = scale
 
                 # Check if there has been an error
-                if years_error or interval_error or asset_error or level1_error or level2_error:
+                if years_error or interval_error or asset_error or level1_error or level2_error or scale_error:
                     raise ValueError("Please fix errors")
                 
                 # Persist user inputs
-                user_dict = {'years': default_years}
+                user_dict = {'years': default_years, 'scale': default_scale}
                 if all([default_asset, default_level1]):
                     user_dict.update({'asset': default_asset, 'level1': default_level1, 'buffer': default_buffer})
                     if default_level2:
@@ -287,6 +327,7 @@ def input(request, app_workspace, user_workspace):
                 default_roi = ''
                 default_asset = default_level1 = default_level2 = None
                 default_buffer = 0
+                default_scale = 100
 
                 # Remove the user input
                 input_path = os.path.join(user_workspace.path, 'user_input.json')
@@ -401,6 +442,16 @@ def input(request, app_workspace, user_workspace):
                             error=interval_error,
                             select2_options={'placeholder': "e.g. Every 20 years"},
                             attributes={'form': 'input-form'})
+
+    # Range slider for map scale selection
+    scale_input = RangeSlider(name='scale',
+                            display_text="",
+                            min=min_scale,
+                            max=1000,
+                            initial=default_scale,
+                            step=10,
+                            error=scale_error,
+                            attributes={'form': 'input-form'})
     
     # Button to delete all current user inputs
     reset_button = Button(name='reset',
@@ -440,7 +491,7 @@ def input(request, app_workspace, user_workspace):
     
     # Button to move onto the next page
     next_button = Button(name='next',
-                        display_text="Go To Next Step - Labelling",
+                        display_text="Go To Next Step",
                         icon='chevron-double-right',
                         style='primary',
                         attributes={'form': 'next-form',
@@ -454,6 +505,7 @@ def input(request, app_workspace, user_workspace):
             'level1_input': level1_input,
             'level2_input': level2_input,
             'buffer_input': buffer_input,
+            'scale_input': scale_input,
             'reset_button': reset_button,
             'example_button': example_button,
             'generate_button': generate_button,
@@ -507,6 +559,9 @@ def labelling(request, user_workspace):
 
             # Create the layer options based on the selected assessment years
             year_options = [(year, year) for year in user_dict['years']]
+
+            # Get the scale
+            scale = user_dict['scale']
 
             # Get the previously selected year and class
             if user_dict.get('selection', None) is not None:
@@ -625,6 +680,55 @@ def labelling(request, user_workspace):
                 # Show error if the year is missing
                 else:
                     year_error = "Please select an assessment period"
+                    raise ValueError("Please fix errors")
+
+            # If polygon labels need to be converted to ponts
+            if 'points' in request.POST:
+
+                # Check that the year has been provided
+                if year:
+
+                    # Check that the class has been provided
+                    if class_name:
+
+                        # Check that there are labels on screen
+                        if geoms:
+
+                            # Check that the geometry is valid
+                            geoms, geoms_error = check_geom(geoms)
+                            if geoms_error and not geoms_error.startswith("More than one geometry type found"):
+                                raise ValueError(geoms_error)
+
+                            # Convert any polygons to points with a set spacing
+                            point_geoms = convert_polygons_to_points(geoms, scale)
+
+                            # Check that the geometry is still valid
+                            point_geoms, geoms_error = check_geom(point_geoms)
+                            if geoms_error:
+                                raise ValueError(geoms_error)
+
+                            # Remove the classification info from the user input if it exists
+                            for key in ['prob_url', 'class_url', 'task']:
+                                if user_dict[str(year)].get(key, None) is not None:
+                                    user_dict[str(year)].pop(key)
+
+                            # Save the user input and labels
+                            add_user_input(user_workspace.path, user_dict, 'input')
+                            add_user_input(user_workspace.path, point_geoms, class_name, year)
+
+                        else:
+                            raise ValueError(f"No {class_name} labels have been created yet for {year}")
+
+                    # Show error if the class is missing
+                    else:
+                        class_error = "Please select a class"
+                    
+                # Show error if the year is missing
+                else:
+                    year_error = "Please select an assessment period"
+
+                # Raise errors
+                if year_error or class_error:
                     raise ValueError("Please fix errors")
 
             # If the labels are to be deleted
@@ -770,7 +874,7 @@ def labelling(request, user_workspace):
         if background is not None:
             background_layer = MVLayer(source='GeoJSON',
                                     options=background,
-                                    layer_options={'style': {'ol.style.Style': {'image': {'ol.style.Circle': {'fill': {'ol.style.Fill': {'color': 'rgba(255, 0, 0, 0.5)'}}, 'radius': 3}},
+                                    layer_options={'style': {'ol.style.Style': {'image': {'ol.style.Circle': {'fill': {'ol.style.Fill': {'color': 'rgba(255, 0, 0, 1.0)'}}, 'radius': 4}},
                                                                                 'stroke': {'ol.style.Stroke': {'color': 'rgba(255, 0, 0, 1.0)', 'width': 2}},
                                                                                 'fill': {'ol.style.Fill': {'color': 'rgba(255, 0, 0, 0.1)'}}}}},
                                     legend_title="Background",
@@ -797,9 +901,9 @@ def labelling(request, user_workspace):
         if ecosystem is not None:
             ecosystem_layer = MVLayer(source='GeoJSON',
                                     options=ecosystem,
-                                    layer_options={'style': {'ol.style.Style': {'image': {'ol.style.Circle': {'fill': {'ol.style.Fill': {'color': 'rgba(0, 255, 0, 0.5)'}}, 'radius': 3}},
-                                                                                'stroke': {'ol.style.Stroke': {'color': 'rgba(0, 255, 0, 0.5)', 'width': 2}},
-                                                                                'fill': {'ol.style.Fill': {'color': 'rgba(0, 255, 0, 0.05)'}}}}},
+                                    layer_options={'style': {'ol.style.Style': {'image': {'ol.style.Circle': {'fill': {'ol.style.Fill': {'color': 'rgba(0, 255, 0, 1.0)'}}, 'radius': 4}},
+                                                                                'stroke': {'ol.style.Stroke': {'color': 'rgba(0, 255, 0, 1.0)', 'width': 2}},
+                                                                                'fill': {'ol.style.Fill': {'color': 'rgba(0, 255, 0, 0.1)'}}}}},
                                     legend_title="Ecosystem",
                                     legend_extent=calculate_extent(ecosystem),
                                     legend_classes=[],
@@ -920,14 +1024,15 @@ def labelling(request, user_workspace):
                         icon='image-fill',
                         style='secondary',
                         attributes={'id': 'load'})
-    
-    # Button to delete the labels of the selected class, or any training samples that have been uploaded
-    delete_button = Button(name='delete',
-                        display_text=f"Delete Labels",
-                        icon='trash-fill',
-                        style='danger',
-                        attributes={'form': 'label-form',
-                                    'title': "Delete the labels for your selected assessment year and target class, and any training samples that have been uploaded."},
+
+    # Button to download the current polygon labels as points
+    points_button = Button(name='points',
+                        display_text="Convert to Points",
+                        icon='arrow-left-right',
+                        style='secondary',
+                        attributes={'id': 'points',
+                                    'form': 'label-form',
+                                    'title': "Convert any polygon labels for your selected class into points. This will also work if you currently have a mix of polygon and point labels, meaning that you can iteratively draw more polygons and convert to points without overwriting any existing points."},
                         submit=True)
     
     # Button to download the current labels of the selected class
@@ -944,20 +1049,29 @@ def labelling(request, user_workspace):
                         icon='braces',
                         style='secondary',
                         attributes={'id': 'samples',
-                                    'title': "Download the training data used to train this assessment year's model."})
+                                    'title': "Download the training data (i.e. sampled pixel values) used to train the model for the selected assessment year."})
+    
+    # Button to delete the labels of the selected class, or any training samples that have been uploaded
+    delete_button = Button(name='delete',
+                        display_text=f"Delete Labels",
+                        icon='trash-fill',
+                        style='danger',
+                        attributes={'form': 'label-form',
+                                    'title': "Delete all labels for your selected assessment year and target class."},
+                        submit=True)
     
     # Button to save the current drawn or uploaded labels or training samples
     save_button = Button(name='save',
-                        display_text=f"Save Labels",
+                        display_text=f"Save/Upload",
                         icon='chevron-right',
                         style='success',
                         attributes={'form': 'label-form',
-                                    'title': "Save your uploaded or drawn labels for this particular assessment year and target class."},
+                                    'title': "Save or upload your labels for your selected assessment year and target class."},
                         submit=True)
 
     # Button to move to the next page
     next_button = Button(name='next',
-                        display_text="Go To Next Step - Mapping",
+                        display_text="Go To Next Step",
                         icon='chevron-double-right',
                         style='primary',
                         attributes={'form': 'next-form',
@@ -973,8 +1087,9 @@ def labelling(request, user_workspace):
             'n_labels': n_labels,
             'n_samples': n_samples,
             'load_button': load_button,
-            'samples_button': samples_button,
+            'points_button': points_button,
             'labels_button': labels_button,
+            'samples_button': samples_button,
             'delete_button': delete_button,
             'save_button': save_button,
             'next_button': next_button}
@@ -1217,9 +1332,10 @@ def classification(request, user_workspace):
         
     # Button to quickly return to the labelling page
     label_button = Button(name='labelling',
-                        display_text='Make More Labels',
+                        display_text='Edit Labels',
                         icon='geo-fill',
                         style='secondary',
+                        attributes={'title': "Return to the 'Labelling' page and make more ecosystem or background labels to try to improve your ecosystem map, if needed."},
                         href=App.reverse('labelling'))
 
     # Button to classify the RoI and display the result on the map
@@ -1227,21 +1343,24 @@ def classification(request, user_workspace):
                         display_text=f"Classify Ecosystem",
                         icon='gear-wide-connected',
                         style='success',
-                        attributes={'id': 'classify'})
+                        attributes={'id': 'classify',
+                                    'title': "Train a machine learning model in Google Earth Engine based upon your labelling and use it to map your chosen ecosystem within the selected assessment period."})
     
     # Button to display the validation metrics for the classification
     metrics_button = Button(name='metrics',
                         display_text="Show Accuracy",
                         icon='bar-chart-line-fill',
                         style='warning',
-                        attributes={'id': 'metrics'})
+                        attributes={'id': 'metrics',
+                                    'title': "Calculate various performance metrics (such as 'accuracy') based upon your labelling. Metrics are shown separately for the labels which were used to train the model, and those that were reserved solely for validation."})
     
     # Button to export the classification
     export_button = Button(name='export',
-                        display_text="Export Map",
+                        display_text="Export/Download Map",
                         icon='cloud-upload-fill',
                         style='primary',
-                        attributes={'id': 'export'})
+                        attributes={'id': 'export',
+                                    'title': "Export your ecosystem map to Google Cloud Storage. Click again to check the status of the export task, and once finished, download it to your own computer."})
 
     context = {'year_input': year_input,
             'layer_input': layer_input,
@@ -1773,83 +1892,90 @@ def get_download(request, user_workspace):
     if request.method != 'POST':
         return HttpResponseNotAllowed(['POST'])
 
+    # Disable the export functionality by default
+    is_export_enabled = False
+
     try:
 
-        # Try to get the year choice from the user
-        year = request.POST.get('year', None)
+        # Check the user permissions to see if the export button should be enabled
+        is_export_enabled = has_permission(request, 'export_enabled')
+        if is_export_enabled:
 
-        # Check that the year has been provided
-        if year:
+            # Try to get the year choice from the user
+            year = request.POST.get('year', None)
 
-            # Get the user input back from the user
-            user_dict = get_user_input(user_workspace.path, 'input')
+            # Check that the year has been provided
+            if year:
 
-            # Get the user input for this year
-            if user_dict.get(str(year), None) is None:
-                raise OSError("Please complete the 'Labelling' page before attempting to map the ecosystem")
-    
-            # Check if the ecosystem has been mapped yet
-            if user_dict[str(year)].get('prob_url', None) is None or user_dict[str(year)].get('class_url', None) is None:
-                raise ValueError("Please click 'Classify RoI' to map the ecosystem and check that it is valid before exporting")
+                # Get the user input back from the user
+                user_dict = get_user_input(user_workspace.path, 'input')
 
-            # Check if an export task has already been submitted
-            if user_dict[str(year)].get('task', None) is not None:
+                # Get the user input for this year
+                if user_dict.get(str(year), None) is None:
+                    raise OSError("Please complete the 'Labelling' page before attempting to map the ecosystem")
+        
+                # Check if the ecosystem has been mapped yet
+                if user_dict[str(year)].get('prob_url', None) is None or user_dict[str(year)].get('class_url', None) is None:
+                    raise ValueError("Please click 'Classify RoI' to map the ecosystem and check that it is valid before exporting")
 
-                # Get the current status of the task
-                export_url = None
-                state, error_message = get_task_status(user_dict[str(year)])
+                # Check if an export task has already been submitted
+                if user_dict[str(year)].get('task', None) is not None:
 
-                # Inform the user if the export failed, is pending, or is running
-                if state == 'FAILED':
-                    warning = f"Export for {year} failed. Error: {error_message}"
-                elif state == 'PENDING':
-                    warning = f"Export for {year} is currently pending. Please wait..."
-                elif state == 'RUNNING':
-                    warning = f"Export for {year} is currently running. Please wait..."
+                    # Get the current status of the task
+                    export_url = None
+                    state, error_message = get_task_status(user_dict[str(year)])
 
-                # If the export has completed, return the download URL
-                elif state == 'SUCCEEDED':
+                    # Inform the user if the export failed, is pending, or is running
+                    if state == 'FAILED':
+                        warning = f"Export for {year} failed. Error: {error_message}"
+                    elif state == 'PENDING':
+                        warning = f"Export for {year} is currently pending. Please wait..."
+                    elif state == 'RUNNING':
+                        warning = f"Export for {year} is currently running. Please wait..."
 
-                    # Get the file name from the user input
-                    file_name = user_dict[str(year)]['task']['file_name']
+                    # If the export has completed, return the download URL
+                    elif state == 'SUCCEEDED':
 
-                    # Get the image metadata
-                    properties = user_dict[str(year)]['task']['properties']
+                        # Get the file name from the user input
+                        file_name = user_dict[str(year)]['task']['file_name']
 
-                    # Combine with the URL for the EcoCAT classifications GCP bucket
-                    export_url = os.path.join('https://storage.cloud.google.com/ecocat-classifications/', file_name + '.tif')
-                    
-                    # # Use rasterio to impute the properties to the GeoTIFF's metadata
-                    # with rasterio.open(export_url, 'r+') as src:
-                    #     src.update_tags(**properties)
+                        # Get the image metadata
+                        properties = user_dict[str(year)]['task']['properties']
 
-                    # Inform the user that the export has finished
-                    warning = f"Export for {year} has finished. Downloading...\nCopy this URL to download the ecosystem map in future: {export_url}"
+                        # Combine with the URL for the EcoCAT classifications GCP bucket
+                        export_url = os.path.join('https://storage.cloud.google.com/ecocat-classifications/', file_name + '.tif')
+                        
+                        # Inform the user that the export has finished
+                        warning = f"Export for {year} has finished. Downloading...\nCopy this URL to download the ecosystem map in future: {export_url}"
 
-            # Otherwise, submit an export task
+                # Otherwise, submit an export task
+                else:
+        
+                    # Export the classification
+                    task, file_name, properties = export_classification(user_workspace, request.user, year=year, tile_scale=4)
+        
+                    # Get the task operation name
+                    operation_name = task.status()['name']
+        
+                    # Add the task to the user input
+                    user_dict[str(year)]['task'] = {'operation_name': operation_name, 'file_name': file_name, 'properties': properties}
+                    add_user_input(user_workspace.path, user_dict, 'input')
+
+                    # Inform the user that the export task has been submitted
+                    warning = f'''Export for {year} has started. Click the 'Export Map' button again to check the status, or once the export has finished, to download the result as a GeoTiff.
+                    \nThis process could take between 5-30 mins depending on the size of your RoI, the resolution of the mapping, and the number of concurrent users.
+                    \nPlease wait for the export to finish/fail before changing any of the input in the 'User Input' or 'Labelling' pages as this will wipe the export information to allow for new ones, meaning you will not be able to access the initial export.'''
+                    export_url = None
+
             else:
-    
-                # Export the classification
-                task, file_name, properties = export_classification(user_workspace, request.user, year=year, tile_scale=4)
-    
-                # Get the task operation name
-                operation_name = task.status()['name']
-    
-                # Add the task to the user input
-                user_dict[str(year)]['task'] = {'operation_name': operation_name, 'file_name': file_name, 'properties': properties}
-                add_user_input(user_workspace.path, user_dict, 'input')
+                raise ValueError("Please select a year before attempting to export the map")
+        
+            # Update the response data
+            response_data.update({'success': True, 'url': export_url, 'warning': warning})
 
-                # Inform the user that the export task has been submitted
-                warning = f'''Export for {year} has started. Click the 'Export Map' button again to check the status, or once the export has finished, to download the result as a GeoTiff.
-                \nThis process could take between 5-30 mins depending on the size of your RoI, the resolution of the mapping, and the number of concurrent users.
-                \nPlease wait for the export to finish/fail before changing any of the input in the 'User Input' or 'Labelling' pages as this will wipe the export information to allow for new ones, meaning you will not be able to access the initial export.'''
-                export_url = None
-
+        # Otherwise, inform the user that they do not have permission to export
         else:
-            raise ValueError("Please select a year before attempting to export the map")
-    
-        # Update the response data
-        response_data.update({'success': True, 'url': export_url, 'warning': warning})
+            raise PermissionError("Due to GEE usage limitations, only select users are able to export maps to Google Cloud Storage in this deployed version. Export permission can be granted on a case-by-case basis by contacting Daniel Le Corre (D.LeCorre@kew.org), or you can install the EcoCAT Mapping Tool locally (see https://github.com/dlecorre387/EcoCAT-Mapping-Tool) and use a personal GEE cloud project.")
 
     # Add an error message to the response data if an exception occurs
     except Exception as e:

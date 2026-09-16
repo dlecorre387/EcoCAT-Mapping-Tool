@@ -64,7 +64,7 @@ def calculate_savi(image: ee.Image) -> ee.Image:
 
     return ee.Image.constant(1.5).multiply(top.divide(bottom))
 
-def classify_ecosystem(roi: dict, ecosystem: Optional[dict], background: Optional[dict], samples: Optional[dict], year: int, window: int, tile_scale: int, scale: int, model_name: str, seed: int = 42) -> Tuple[ee.Image, ee.ConfusionMatrix]:
+def classify_ecosystem(roi: dict, ecosystem: Optional[dict], background: Optional[dict], samples: Optional[dict], year: int, window: int, tile_scale: int, scale: int, model_name: str, seed: int = 42, factor: int = 5) -> Tuple[ee.Image, ee.ConfusionMatrix]:
     """
     Classify the ecosystem labelled by the user within their defined RoI.
     """
@@ -74,21 +74,14 @@ def classify_ecosystem(roi: dict, ecosystem: Optional[dict], background: Optiona
 
     # Get a bounding box around the RoI
     roi_geom = roi_collection.geometry()
-    
-    # If using MODIS as the training data
-    if int(year) >= 2000 and scale >= 500:
-
-        # Get a composite of MODIS data
-        training_data = get_modis_composite(year=year,
-                                            roi_geom=roi_geom,
-                                            tile_scale=tile_scale)
 
     # If using Landsat as the training data
-    elif int(year) < 2017:
+    if int(year) < 2017:
 
         # Get the Landsat collection
         training_data = get_landsat_composite(year=year, 
                                             roi_geom=roi_geom, 
+                                            scale=scale,
                                             window=window, 
                                             tile_scale=tile_scale)
 
@@ -108,7 +101,7 @@ def classify_ecosystem(roi: dict, ecosystem: Optional[dict], background: Optiona
     # Define a function for creating a fixed grid of points within a polygon
     def fixed_grid(feat):
         geom = ee.Feature(feat).geometry()
-        grids = geom.coveringGrid(proj=geom.projection(), scale=2 * scale)
+        grids = geom.coveringGrid(proj=geom.projection(), scale=factor*scale)
         return grids.map(lambda grid: ee.Feature(ee.Feature(grid).centroid(maxError=0.1))).filter(ee.Filter.contains(leftValue=geom, rightField='.geo'))
 
     # If training samples have not been provided, but point/polygon labels have
@@ -280,7 +273,7 @@ def classify_ecosystem(roi: dict, ecosystem: Optional[dict], background: Optiona
     
     return probabilities, model_info, train_matrix, val_matrix
 
-def cluster_ecosystem(roi: dict, ecosystem: Optional[dict], background: Optional[dict], samples: Optional[dict], year: int, window: int, tile_scale: int, scale: int, model_name: str, seed: int = 42) -> Tuple[ee.Image, ee.ConfusionMatrix]:
+def cluster_ecosystem(roi: dict, ecosystem: Optional[dict], background: Optional[dict], samples: Optional[dict], year: int, window: int, tile_scale: int, scale: int, model_name: str, seed: int = 42, factor: int = 5) -> Tuple[ee.Image, ee.ConfusionMatrix]:
     """
     Cluster and then classify the ecosystem labelled by the user within their defined RoI.
     """
@@ -291,20 +284,13 @@ def cluster_ecosystem(roi: dict, ecosystem: Optional[dict], background: Optional
     # Get a bounding box around the RoI
     roi_geom = roi_collection.geometry()
     
-    # If using MODIS as the training data
-    if int(year) >= 2000 and scale >= 500:
-
-        # Get a composite of MODIS data
-        training_data = get_modis_composite(year=year,
-                                            roi_geom=roi_geom,
-                                            tile_scale=tile_scale)
-
     # If using Landsat as the training data
-    elif int(year) < 2017:
+    if int(year) < 2017:
 
         # Get the Landsat collection
         training_data = get_landsat_composite(year=year, 
                                             roi_geom=roi_geom, 
+                                            scale=scale,
                                             window=window, 
                                             tile_scale=tile_scale)
 
@@ -324,7 +310,7 @@ def cluster_ecosystem(roi: dict, ecosystem: Optional[dict], background: Optional
     # Define a function for creating a fixed grid of points within a polygon
     def fixed_grid(feat):
         geom = ee.Feature(feat).geometry()
-        grids = geom.coveringGrid(proj=geom.projection(), scale=2 * scale)
+        grids = geom.coveringGrid(proj=geom.projection(), scale=factor*scale)
         return grids.map(lambda grid: ee.Feature(ee.Feature(grid).centroid(maxError=0.1))).filter(ee.Filter.contains(leftValue=geom, rightField='.geo'))
 
     # If training samples have not been provided, but point/polygon labels have
@@ -508,21 +494,14 @@ def cluster_ecosystem(roi: dict, ecosystem: Optional[dict], background: Optional
 
     return probabilities, model_info, train_matrix, val_matrix
 
-def get_dissimilarity_index(year: int, roi_geom: ee.Geometry, collection: ee.ImageCollection, ecosystem: Optional[dict], background: Optional[dict], samples: Optional[dict], scale: int, model_name: str, aoa: bool, tile_scale: int = 1, n_predictors: Optional[int] = None, n_folds: int = 3, seed: int = 42) -> ee.Image:
+def get_dissimilarity_index(year: int, roi_geom: ee.Geometry, collection: ee.ImageCollection, ecosystem: Optional[dict], background: Optional[dict], samples: Optional[dict], scale: int, model_name: str, aoa: bool, tile_scale: int = 1, n_predictors: Optional[int] = None, n_folds: int = 3, seed: int = 42, factor: int = 5) -> ee.Image:
     
-    # If using MODIS as the training data
-    if int(year) >= 2000 and scale >= 500:
-
-        # Get a composite of MODIS data
-        training_data = get_modis_composite(roi_geom=roi_geom,
-                                            collection=collection,
-                                            tile_scale=tile_scale)
-
     # If using Landsat as the training data
-    elif int(year) < 2017:
+    if int(year) < 2017:
 
         # Get the Landsat collection
         training_data = get_landsat_composite(roi_geom=roi_geom,
+                                            scale=scale,
                                             collection=collection, 
                                             tile_scale=tile_scale)
 
@@ -538,7 +517,7 @@ def get_dissimilarity_index(year: int, roi_geom: ee.Geometry, collection: ee.Ima
     # Define a function for creating a fixed grid of points within a polygon
     def fixed_grid(feat):
         geom = ee.Feature(feat).geometry()
-        grids = geom.coveringGrid(proj=geom.projection(), scale=2 * scale)
+        grids = geom.coveringGrid(proj=geom.projection(), scale=factor*scale)
         return grids.map(lambda grid: ee.Feature(ee.Feature(grid).centroid(maxError=0.1))).filter(ee.Filter.contains(leftValue=geom, rightField='.geo'))
 
     # If training samples have not been provided, but point/polygon labels have
@@ -824,7 +803,7 @@ def get_landsat_collection(year: str, window: int, roi_geom: ee.Geometry, cloud_
     
     return landsat_collection
 
-def get_landsat_composite(roi_geom: ee.Geometry, tile_scale: int = 1, year: Optional[str] = None, window: Optional[int] = None, collection: Optional[ee.ImageCollection] = None) -> ee.Image:
+def get_landsat_composite(roi_geom: ee.Geometry, scale: int, tile_scale: int = 1, year: Optional[str] = None, window: Optional[int] = None, collection: Optional[ee.ImageCollection] = None) -> ee.Image:
     """
     Generate a composite of Landsat or Landsat-derived data for a given assessment period and RoI
     """
@@ -865,22 +844,22 @@ def get_landsat_composite(roi_geom: ee.Geometry, tile_scale: int = 1, year: Opti
     slope = ee.Terrain.slope(elevation)
 
     # Normalise the images
-    R = standardise(R, roi_geom)
-    G = standardise(G, roi_geom)
-    B = standardise(B, roi_geom)
-    NDVI_med = standardise(NDVI_med, roi_geom).rename('NDVI_med')
-    NDVI_std = standardise(NDVI_std, roi_geom).rename('NDVI_std')
-    EVI_med = standardise(EVI_med, roi_geom).rename('EVI_med')
-    EVI_std = standardise(EVI_std, roi_geom).rename('EVI_std')
-    SAVI_med = standardise(SAVI_med, roi_geom).rename('SAVI_med')
-    SAVI_std = standardise(SAVI_std, roi_geom).rename('SAVI_std')
-    NDMI_med = standardise(NDMI_med, roi_geom).rename('NDMI_med')
-    NDMI_std = standardise(NDMI_std, roi_geom).rename('NDMI_std')
-    NDWI_med = standardise(NDWI_med, roi_geom).rename('NDWI_med')
-    NDBI_med = standardise(NDBI_med, roi_geom).rename('NDBI_med')
-    elevation = standardise(elevation, roi_geom).rename('elevation')
-    slope = standardise(slope, roi_geom).rename('slope')
-    
+    R = standardise(R, roi_geom, scale)
+    G = standardise(G, roi_geom, scale)
+    B = standardise(B, roi_geom, scale)
+    NDVI_med = standardise(NDVI_med, roi_geom, scale).rename('NDVI_med')
+    NDVI_std = standardise(NDVI_std, roi_geom, scale).rename('NDVI_std')
+    EVI_med = standardise(EVI_med, roi_geom, scale).rename('EVI_med')
+    EVI_std = standardise(EVI_std, roi_geom, scale).rename('EVI_std')
+    SAVI_med = standardise(SAVI_med, roi_geom, scale).rename('SAVI_med')
+    SAVI_std = standardise(SAVI_std, roi_geom, scale).rename('SAVI_std')
+    NDMI_med = standardise(NDMI_med, roi_geom, scale).rename('NDMI_med')
+    NDMI_std = standardise(NDMI_std, roi_geom, scale).rename('NDMI_std')
+    NDWI_med = standardise(NDWI_med, roi_geom, scale).rename('NDWI_med')
+    NDBI_med = standardise(NDBI_med, roi_geom, scale).rename('NDBI_med')
+    elevation = standardise(elevation, roi_geom, scale).rename('elevation')
+    slope = standardise(slope, roi_geom, scale).rename('slope')
+        
     # Combine the bands to form a composite of different modalities
     composite = ee.Image([R, G, B, 
                         NDVI_med, NDVI_std, 
@@ -892,11 +871,15 @@ def get_landsat_composite(roi_geom: ee.Geometry, tile_scale: int = 1, year: Opti
 
     return composite
 
-def get_modis_collection(year: str, roi_geom: ee.Geometry) -> ee.ImageCollection:
+def get_modis_collection(year: str, window: int, roi_geom: ee.Geometry) -> ee.ImageCollection:
 
-    # Get the start and end dates for filtering the collection
-    start_date = ee.Date.fromYMD(int(year), 1, 1)
-    end_date = start_date.advance(1, 'year')
+    # Get the start and end years based on the window of assessment (in years either side of the chosen assessment year)
+    start_year = int(year) - window if int(year) - window >= 1982 else 1982
+    end_year = int(year) + window if int(year) + window <= 2025 else 2025
+    
+    # Get the start and end date to use for filtering
+    start_date = ee.Date.fromYMD(start_year, 1, 1)
+    end_date = ee.Date.fromYMD(1 + end_year, 1, 1)
 
     # Collect all MODIS Terra surface reflectance images (daily 500m)
     terra_collection = ee.ImageCollection('MODIS/061/MOD09A1').filterBounds(roi_geom).filterDate(start_date, end_date)
@@ -905,7 +888,7 @@ def get_modis_collection(year: str, roi_geom: ee.Geometry) -> ee.ImageCollection
     aqua_collection = ee.ImageCollection('MODIS/061/MYD09A1').filterBounds(roi_geom).filterDate(start_date, end_date)
 
     # Merge the two collections
-    modis_collection = terra_collection.merge(aqua_collection)
+    modis_collection = ee.ImageCollection(terra_collection.merge(aqua_collection).randomColumn(seed=42).limit(10, 'random'))
 
     # Rename the MODIS bands
     bands = ['sur_refl_b01', 'sur_refl_b02', 'sur_refl_b03', 'sur_refl_b04', 'sur_refl_b06', 'sur_refl_b07']
@@ -922,11 +905,11 @@ def get_modis_collection(year: str, roi_geom: ee.Geometry) -> ee.ImageCollection
 
     return modis_collection
 
-def get_modis_composite(roi_geom: ee.Geometry, tile_scale: int = 1, year: Optional[str] = None, collection: Optional[ee.ImageCollection] = None) -> ee.Image:
+def get_modis_composite(roi_geom: ee.Geometry, scale: int, tile_scale: int = 8, year: Optional[str] = None, window: int = None, collection: Optional[ee.ImageCollection] = None) -> ee.Image:
 
     # Collect all MODIS Terra and Aqua surface reflectance images
-    if collection is None and year is not None:
-        collection = get_modis_collection(year=year, roi_geom=roi_geom)
+    if collection is None and (year is not None and window is not None):
+        collection = get_modis_collection(year=year, window=window, roi_geom=roi_geom)
     elif collection is None:
         raise ValueError("ImageCollection or the assessment year must be provided")
 
@@ -957,24 +940,25 @@ def get_modis_composite(roi_geom: ee.Geometry, tile_scale: int = 1, year: Option
 
     # Digital Elevation Model elevation and slope
     elevation = ee.ImageCollection('projects/sat-io/open-datasets/FABDEM').filterBounds(roi_geom).mosaic().setDefaultProjection('EPSG:3857', None, 30)
-    slope = ee.Terrain.slope(elevation)
+    slope = ee.Terrain.slope(elevation).reproject(crs='EPSG:4326', scale=500)
+    elevation = elevation.reproject(crs='EPSG:4326', scale=500)
 
     # Normalise the images
-    R_med = standardise(R_med, roi_geom)
-    G_med = standardise(G_med, roi_geom)
-    B_med = standardise(B_med, roi_geom)
-    NDVI_med = standardise(NDVI_med, roi_geom).rename('NDVI_med')
-    NDVI_std = standardise(NDVI_std, roi_geom).rename('NDVI_std')
-    EVI_med = standardise(EVI_med, roi_geom).rename('EVI_med')
-    EVI_std = standardise(EVI_std, roi_geom).rename('EVI_std')
-    SAVI_med = standardise(SAVI_med, roi_geom).rename('SAVI_med')
-    SAVI_std = standardise(SAVI_std, roi_geom).rename('SAVI_std')
-    NDMI_med = standardise(NDMI_med, roi_geom).rename('NDMI_med')
-    NDMI_std = standardise(NDMI_std, roi_geom).rename('NDMI_std')
-    NDWI_med = standardise(NDWI_med, roi_geom).rename('NDWI_med')
-    NDBI_med = standardise(NDBI_med, roi_geom).rename('NDBI_med')
-    elevation = standardise(elevation, roi_geom).rename('elevation')
-    slope = standardise(slope, roi_geom).rename('slope')
+    R_med = standardise(R_med, roi_geom, int(scale / 10))
+    G_med = standardise(G_med, roi_geom, int(scale / 10))
+    B_med = standardise(B_med, roi_geom, int(scale / 10))
+    NDVI_med = standardise(NDVI_med, roi_geom, int(scale / 10)).rename('NDVI_med')
+    NDVI_std = standardise(NDVI_std, roi_geom, int(scale / 10)).rename('NDVI_std')
+    EVI_med = standardise(EVI_med, roi_geom, int(scale / 10)).rename('EVI_med')
+    EVI_std = standardise(EVI_std, roi_geom, int(scale / 10)).rename('EVI_std')
+    SAVI_med = standardise(SAVI_med, roi_geom, int(scale / 10)).rename('SAVI_med')
+    SAVI_std = standardise(SAVI_std, roi_geom, int(scale / 10)).rename('SAVI_std')
+    NDMI_med = standardise(NDMI_med, roi_geom, int(scale / 10)).rename('NDMI_med')
+    NDMI_std = standardise(NDMI_std, roi_geom, int(scale / 10)).rename('NDMI_std')
+    NDWI_med = standardise(NDWI_med, roi_geom, int(scale / 10)).rename('NDWI_med')
+    NDBI_med = standardise(NDBI_med, roi_geom, int(scale / 10)).rename('NDBI_med')
+    elevation = standardise(elevation, roi_geom, int(scale / 10)).rename('elevation')
+    slope = standardise(slope, roi_geom, int(scale / 10)).rename('slope')
 
     # Combine the bands to form a composite of different modalities
     composite = ee.Image([R_med, G_med, B_med, 
@@ -998,7 +982,7 @@ def get_region_of_interest(asset: str, level1: str, level2: Optional[str] = None
     level2_prop = ROI_ASSETS[asset]['level2_name']
     if "WGSRPD" in asset:
         level1 = int(level1)
-            
+        
     # Retrieve the GEE asset as a FeatureCollection
     try:
         asset_collection = ee.FeatureCollection(asset_id)
@@ -1181,12 +1165,11 @@ def S2_mask(image: ee.Image) -> ee.Image:
 
     return image.updateMask(mask.Not()).updateMask(null_mask).divide(10000).copyProperties(image, ['system:time_start', 'CLOUDY_PIXEL_PERCENTAGE'])
 
-def standardise(image: ee.Image, roi_geom: ee.Geometry):
+def standardise(image: ee.Image, roi_geom: ee.Geometry, scale: Optional[int] = None):
     """
     Standardise an image by it's mean and standard deviation.
     """
-
-    mean = image.reduceRegion(geometry=roi_geom, reducer=ee.Reducer.mean(), maxPixels=1e13).values().get(0)
-    std = image.reduceRegion(geometry=roi_geom, reducer=ee.Reducer.stdDev(), maxPixels=1e13).values().get(0)
-
+    mean = image.reduceRegion(geometry=roi_geom, reducer=ee.Reducer.mean(), maxPixels=1e13, scale=10*scale).values().get(0)
+    std = image.reduceRegion(geometry=roi_geom, reducer=ee.Reducer.stdDev(), maxPixels=1e13, scale=10*scale).values().get(0)
+    
     return image.subtract(ee.Image.constant(mean)).divide(ee.Image.constant(std))

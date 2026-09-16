@@ -37,7 +37,6 @@
 {% block header_buttons %}
   {% url tethys_app|url:'home' as home_url %}
   {% url tethys_app|url:'input' as input_url %}
-  <!-- {% url tethys_app|url:'occurrences' as occurrences_url %} -->
   {% url tethys_app|url:'labelling' as labelling_url %}
   {% url tethys_app|url:'classification' as classification_url %}
   {% url tethys_app|url:'help' as help_url %}
@@ -53,9 +52,6 @@
   <div class="header-button glyphicon-button">
     <a style="font-size: 1.0rem;" href="{{ classification_url }}" title="Map your ecosystem through time using the EcoCAT Mapping Tool"><i class="bi bi-map-fill"></i> Mapping</a>
   </div>
-  <!-- <div class="header-button glyphicon-button">
-    <a style="font-size: 1.0rem;" href="{{ occurrences_url }}" title="Compare your labels or ecosystem maps with GBIF occurrences"><i class="bi bi-binoculars-fill"></i> Occurrences</a>
-  </div> -->
   <div class="header-button glyphicon-button">
     <a style="font-size: 1.0rem;" href="{{ help_url }}" title="Find useful information on terminology, datasets, methods or commonly asked questions"><i class="bi bi-question-circle-fill"></i> Help & FAQs</a>
   </div>

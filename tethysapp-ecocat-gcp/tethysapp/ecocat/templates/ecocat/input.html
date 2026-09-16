@@ -7,13 +7,14 @@
   <ol>
     <li>Define a Region of Interest <i class="bi bi-info-circle" title="Define your Region of Interest (RoI) - an area containing the ecosystem you want to map - by selecting one or more boundaries from an existing catalogue, uploading a GeoJSON file OR drawing a RoI on the map (NOTE: drawing controls are in the top left of the map). You can also buffer your RoI (in kilometres) if you think there may be ecosystem present beyond its current extent"></i></li>
   </ol>
-  <p>Choose from a catalogue:</p>
+  <p>Draw a RoI using the controls:</p>
+  <p><b>OR</b> Choose from a catalogue:</p>
   {% gizmo asset_input %}
   {% gizmo level1_input %}
   {% gizmo level2_input %}
   <p><b>OR</b> Upload a GeoJSON:</p>
   <input type="file" id="roi-file" name="roi-file" accept=".geojson" multiple="false" form="input-form" style="margin-left: 20px; width: 230px; padding-bottom: 1rem;">
-  <p>(Optional) Buffer the RoI:</p>
+  <p><b>(Optional)</b> Buffer the RoI [in km]:</p>
   {% gizmo buffer_input %}
 
   <ol start="2">
@@ -21,15 +22,21 @@
   </ol>
   <p>Pick one or more specific years:</p>
   {% gizmo years_input %}
-  <p><b>OR</b> Select a regular assessment interval starting from 2025:</p>
+  <p><b>OR</b> Select a regular interval:</p>
   {% gizmo interval_input %}
 
   <ol start="3">
+    <li>Choose your map scale <i class="bi bi-info-circle" title="The map scale is the resolution of the ecosystem maps that will be produced. For example, a pixel within an ecosystem map with a map scale of 100 metres per pixel will be 100 x 100 metres on the ground. The recommended value in most cases (provided the RoI is not too large) is 100 m/pixel."></i></li>
+  </ol>
+  <p>Set a map scale [in m/pixel]:</p>
+  {% gizmo scale_input %}
+
+  <ol start="4">
     <li>Click <a style="color: #5cb85c;"><i class="bi bi-chevron-right"></i> Save Inputs</a> to save the chosen RoI and years <i class="bi bi-info-circle" title="Save your chosen Region of Interest (RoI) and assessment year(s) by clicking the 'Save Inputs' button in the bottom right of the screen."></i></li>
   </ol>
 
-  <ol start="4">
-    <li>Lastly, click <a style="color: #337ab7"><i class="bi bi-chevron-double-right"></i> Go to Next Step - Labelling</a> to move onwards <i class="bi bi-info-circle" title="Once you have saved your inputs, click the 'Go to Next Step - Labelling' button in the bottom right of the screen to move onto the next part of the EcoCAT Mapping Tool"></i></li>
+  <ol start="5">
+    <li>Lastly, click <a style="color: #337ab7"><i class="bi bi-chevron-double-right"></i> Go to Next Step</a> to move onwards <i class="bi bi-info-circle" title="Once you have saved your inputs, click the 'Go to Next Step - Labelling' button in the bottom right of the screen to move onto the next part of the EcoCAT Mapping Tool"></i></li>
   </ol>
   
 {% endblock %}

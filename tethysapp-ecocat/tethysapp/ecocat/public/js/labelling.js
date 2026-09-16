@@ -231,10 +231,13 @@ var LABELLING = (function() {
         window.onload = function() {
             xhr.abort();
         };
+        window.onbeforeunload = function() {
+            xhr.abort();
+        };
 
         // Check if the AJAX request was aborted
         xhr.fail(function(jqXHR, textStatus) {
-            alert("Please wait for the tool to finish loading before clicking other buttons");
+            alert("Please try to wait for the tool to finish loading before clicking other buttons");
             $('#down-loader').removeClass('show');
         });
 
@@ -306,10 +309,13 @@ var LABELLING = (function() {
         window.onload = function() {
             xhr.abort();
         };
+        window.onbeforeunload = function() {
+            xhr.abort();
+        };
 
         // Check if the AJAX request was aborted
         xhr.fail(function(jqXHR, textStatus) {
-            alert("Please wait for the tool to finish loading before clicking other buttons");
+            alert("Please try to wait for the tool to finish loading before clicking other buttons");
             $('#down-loader').removeClass('show');
         });
 
@@ -400,10 +406,13 @@ var LABELLING = (function() {
         window.onload = function() {
             xhr.abort();
         };
+        window.onbeforeunload = function() {
+            xhr.abort();
+        };
 
         // Check if the AJAX request was aborted
         xhr.fail(function(jqXHR, textStatus) {
-            alert("Please wait for the tool to finish loading before clicking other buttons");
+            alert("Please try to wait for the tool to finish loading before clicking other buttons");
             $('#img-loader').removeClass('show');
         });
 
@@ -669,6 +678,12 @@ var LABELLING = (function() {
 
         // Initialise the map
         m_map = TETHYS_MAP_VIEW.getMap();
+
+        // Change the opacity of the class not being labelled
+        let layers = m_map.getAllLayers();
+        if (layers[layers.length - 2].tethys_legend_title === 'Ecosystem' || layers[layers.length - 2].tethys_legend_title === 'Background') {
+            layers[layers.length - 2].setOpacity(0.25)
+        };
 
     });
 
