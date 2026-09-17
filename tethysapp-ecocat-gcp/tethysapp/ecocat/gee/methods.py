@@ -6,22 +6,22 @@ from ee.ee_exception import EEException
 from pygbif import occurrences as occ
 from pygbif import species
 from typing import Optional, Tuple
-from . import params as gee_account
+# from . import params as gee_account
 from .gee_functions import *
 from ..helpers import *
 from ..model import *
 
-if gee_account.service_account:
-    try:
-        credentials = ee.ServiceAccountCredentials(gee_account.service_account, gee_account.private_key)
-        ee.Initialize(credentials)
-    except EEException as e:
-        print(str(e))
-else:
-    try:
-        ee.Initialize()
-    except EEException as e:
-        print('Unable to initialize GEE. If installing ignore this warning.')
+# if gee_account.service_account:
+#     try:
+#         credentials = ee.ServiceAccountCredentials(gee_account.service_account, gee_account.private_key)
+#         ee.Initialize(credentials)
+#     except EEException as e:
+#         print(str(e))
+# else:
+try:
+    ee.Initialize()
+except EEException as e:
+    print('Unable to initialize GEE. If installing ignore this warning.')
 
 def get_taxon_key(name: str, rank: Optional[str] = None) -> Tuple[Optional[str], str, float]:
     """
