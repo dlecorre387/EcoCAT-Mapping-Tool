@@ -1,0 +1,56 @@
+name: Dev Deploy
+
+on:
+  # Manual deploy of any tag — this is also your rollback path.
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Image tag to deploy (e.g. sha-abc1234 or latest)"
+        required: true
+        default: latest
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Resolve tag
+        id: tag
+        run: |
+          set -euo pipefail
+          echo "value=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+          echo "Deploying ${{ inputs.tag }}" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1
+        env:
+          TAG: ${{ steps.tag.outputs.value }}
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.VM_SSH_KEY }}
+          envs: TAG
+          script: |
+            set -euo pipefail
+            cd apps/EcoCAT-Mapping-Tool/
+
+            git pull
+
+            # Upsert the tag rather than clobbering other vars in .env
+            touch .env
+            if grep -q '^ECOCAT_TAG=' .env; then
+              sed -i "s|^ECOCAT_TAG=.*|ECOCAT_TAG=$TAG|" .env
+            else
+              echo "ECOCAT_TAG=$TAG" >> .env
+            fi
+
+            docker compose pull web
+            docker compose up -d web --no-deps
+
+            # Prove what actually landed
+            docker compose ps web
+            docker inspect --format \
+              'running revision: {{ index .Config.Labels "org.opencontainers.image.revision" }}' \
+              "$(docker compose ps -q web)"
+
+            docker image prune -f

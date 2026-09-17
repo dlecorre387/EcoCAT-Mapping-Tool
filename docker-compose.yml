@@ -1,0 +1,39 @@
+services:
+  db:
+    image: postgis/postgis:latest
+    restart: always
+    networks:
+      - "internal"
+    ports:
+      - "5432:5432"
+    env_file:
+      - ./env/db.env
+    volumes:
+      - ./data/db:/var/lib/postgresql/data
+  redis:
+    image: redis:latest
+    restart: always
+    networks:
+      - "internal"
+  web:
+    image: ghcr.io/dlecorre387/ecocat:${ECOCAT_TAG:-latest}
+    restart: always
+    depends_on:
+      - "db"
+      - "redis"
+    networks:
+      - "internal"
+      - "external"
+    ports:
+      - "8000:8080"
+    env_file:
+      - ./env/web.env
+    volumes:
+      - ./data/tethys:/var/lib/tethys_persist
+      - ./keys:/var/lib/tethys/keys
+      - ./logs/tethys:/var/log/tethys
+      - ./ecocat-dev-e29a3524d520.json:/var/lib/tethys_persist/ecocat-dev-e29a3524d520.json
+networks:
+  internal:
+    internal: true
+  external:
