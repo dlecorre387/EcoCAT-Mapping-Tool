@@ -5,7 +5,7 @@ FROM tethysplatform/tethys-core:4.3.8-py3.12-dj5.2
 ENV DEBUG="False"
 ENV ENABLE_OPEN_SIGNUP="False"
 ENV ALLOWED_HOSTS="\"[localhost, 34.89.123.66, 34.39.95.217, map.ecocatproject.org]\""
-ENV CRSF_TRUST_ORIGINS="\"[http://localhost, http://34.89.123.66, http://34.39.95.217, https://map.ecocatproject.org]\""
+ENV CRSF_TRUST_ORIGINS="\"[http://localhost, http://34.89.123.66, https://34.39.95.217, https://map.ecocatproject.org]\""
 ENV SITE_TITLE="EcoCAT"
 ENV APPS_LIBRARY_TITLE="Tools"
 ENV FAVICON="tethys_portal/images/kew_logo_square_black.png"
