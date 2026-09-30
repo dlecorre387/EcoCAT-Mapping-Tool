@@ -33,6 +33,7 @@ services:
       - ./keys:/var/lib/tethys/keys
       - ./logs/tethys:/var/log/tethys
       - ./ecocat-dev-e29a3524d520.json:/var/lib/tethys_persist/ecocat-dev-e29a3524d520.json
+      - ~/credential_files/params.py:/opt/conda/envs/tethys/lib/python3.12/site-packages/tethysapp/ecocat/gee/params.py
 networks:
   internal:
     internal: true
