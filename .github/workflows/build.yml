@@ -76,5 +76,5 @@ jobs:
             echo "${{ steps.image.outputs.name }}:sha-${{ steps.image.outputs.sha }}"
             echo ''
             echo ""
-            echo "Commit: \${{ github.sha }}\"
+            echo "Commit: ${{ github.sha }}"
           } >> "$GITHUB_STEP_SUMMARY"
