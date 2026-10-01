@@ -14,3 +14,4 @@ services.yml
 env/
 data/
 logs/
+.env

@@ -11,7 +11,7 @@ class App(TethysAppBase):
     description = 'A user-friendly tool for mapping terrestrial ecosystems over the past 40+ years using expert knowledge, satellite data and machine learning'
     package = 'ecocat'
     index = 'home'
-    icon = f'{package}/images/kew_logo_square_black.png'
+    icon = f'{package}/images/EcoCAT_RGB_W.png'
     root_url = 'ecocat'
     color = '#669900'
     tags = ''
