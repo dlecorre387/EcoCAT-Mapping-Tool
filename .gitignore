@@ -9,6 +9,7 @@
 *.DS_Store
 *params.py
 ecocat-dev*.json
+ecocat-dev*.json~
 .idea/
 services.yml
 env/
