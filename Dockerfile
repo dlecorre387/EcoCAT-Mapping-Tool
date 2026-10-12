@@ -20,7 +20,7 @@ RUN cd ${TETHYS_HOME}/apps/tethysapp-ecocat && tethys install
 COPY salt/ /srv/salt/
 
 # Configure the Tethys Portal
-RUN tethys settings --set TETHYS_PORTAL_CONFIG.BYPASS_TETHYS_HOME_PAGE true 
+RUN tethys settings --set TETHYS_PORTAL_CONFIG.BYPASS_TETHYS_HOME_PAGE true
 RUN tethys settings --set TETHYS_PORTAL_CONFIG.ENABLE_OPEN_SIGNUP false
 RUN tethys settings --set TETHYS_PORTAL_CONFIG.ENABLE_OPEN_PORTAL false
 RUN tethys settings --set TETHYS_PORTAL_CONFIG.MULTIPLE_APP_MODE false
