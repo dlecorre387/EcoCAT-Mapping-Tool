@@ -955,10 +955,10 @@ def labelling(request, user_workspace):
             layer_options.remove(("Canopy Height (in metres)", 'chm'))
 
         # Add the Global Mangrove Watch for 1996 to 2020
-        if int(default_year) >= 1996 and int(default_year) <= 2020 and ("Global Mangrove Watch", 'gwm') not in layer_options:
-            layer_options.append(("Global Mangrove Watch", 'gwm'))
+        if int(default_year) >= 1996 and int(default_year) <= 2020 and ("Global Mangrove Watch", 'gmw') not in layer_options:
+            layer_options.append(("Global Mangrove Watch", 'gmw'))
         elif ("Global Mangrove Watch", 'gwm') in layer_options:
-            layer_options.remove(("Global Mangrove Watch", 'gwm'))
+            layer_options.remove(("Global Mangrove Watch", 'gmw'))
     
     # Select options for the remote-sensing layer to be shown on the map
     layer_input = SelectInput(name='layer',
@@ -1277,10 +1277,10 @@ def classification(request, user_workspace):
             layer_options.remove(("Canopy Height (in metres)", 'chm'))
 
         # Add the Global Mangrove Watch for 1996 to 2020
-        if int(default_year) >= 1996 and int(default_year) <= 2020 and ("Global Mangrove Watch", 'gwm') not in layer_options:
-            layer_options.append(("Global Mangrove Watch", 'gwm'))
-        elif ("Global Mangrove Watch", 'gwm') in layer_options:
-            layer_options.remove(("Global Mangrove Watch", 'gwm'))
+        if int(default_year) >= 1996 and int(default_year) <= 2020 and ("Global Mangrove Watch", 'gmw') not in layer_options:
+            layer_options.append(("Global Mangrove Watch", 'gmw'))
+        elif ("Global Mangrove Watch", 'gmw') in layer_options:
+            layer_options.remove(("Global Mangrove Watch", 'gmw'))
     
     # Select options for the remote-sensing layer to be shown on the map
     layer_input = SelectInput(name='layer',

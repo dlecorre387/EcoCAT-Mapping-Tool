@@ -217,7 +217,7 @@ def get_image_url(user_workspace: str, year: str, layer: str, tile_scale: int = 
         if collection.size().getInfo() == 0:
             raise EEException("No terrestrial WDPA data is available for this Region of Interest. Please use a different RoI")
         image = ee.Image().float().paint(collection, 'REP_AREA')
-        vis_params['palette'] = ['#CDDC00', '#669900', '#275D37']
+        vis_params['palette'] = ['#275D37', '#669900', '#CDDC00']
 
     # If a optical image (visible or index) is selected
     else:

@@ -558,7 +558,7 @@ var LABELLING = (function() {
             m_vis_layer.tethys_legend_title = 'Dissimilarity';
         } else if (m_layer === 'aoa') {
             m_vis_layer.tethys_legend_title = 'Applicability';
-        } else if (m_layer === 'gwm') {
+        } else if (m_layer === 'gmw') {
             m_vis_layer.tethys_legend_title = 'Mangroves';
         } else if (m_layer === 'wdpa') {
             m_vis_layer.tethys_legend_title = 'Protected Areas';
