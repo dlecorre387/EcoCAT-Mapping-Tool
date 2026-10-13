@@ -5,7 +5,6 @@ Move_Custom_Theme_Files_to_Static_Root:
   cmd.run:
     - name: mv /tmp/custom_theme {{ STATIC_ROOT }}
     - shell: /bin/bash
-    - unless: /bin/bash -c "[ -f "{{ TETHYS_PERSIST }}/custom_theme_setup_complete" ];"
 
 Apply_Custom_Theme:
   cmd.run:
@@ -24,10 +23,3 @@ Apply_Custom_Theme:
         --background-color "#ffffff"
         --copyright "Copyright © 2026 Daniel Le Corre, Rob Critchlow, Tarciso Leão, Royal Botanic Gardens, Kew"
     - shell: /bin/bash
-    - unless: /bin/bash -c "[ -f "{{ TETHYS_PERSIST }}/custom_theme_setup_complete" ];"
-
-Flag_Custom_Theme_Setup_Complete:
-  cmd.run:
-    - name: touch {{ TETHYS_PERSIST }}/custom_theme_setup_complete
-    - shell: /bin/bash
-    - unless: /bin/bash -c "[ -f "{{ TETHYS_PERSIST }}/custom_theme_setup_complete" ];"

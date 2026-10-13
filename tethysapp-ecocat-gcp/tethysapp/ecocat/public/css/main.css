@@ -1,3 +1,7 @@
+#app-header .tethys-app-header #nav-title-wrapper .icon-wrapper img {
+    border-radius: 0;
+}
+
 #app-content-wrapper #app-content #app-navigation {
     height: 100vh;
     min-height: 0;
