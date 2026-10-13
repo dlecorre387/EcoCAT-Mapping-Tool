@@ -178,7 +178,7 @@ def get_image_url(user_workspace: str, year: str, layer: str, tile_scale: int = 
         collection = npp_terra_collection.merge(npp_aqua_collection)
         if collection.size().getInfo() == 0:
             raise EEException("No NPP data is available for this Region of Interest. Please use a different RoI")
-        image = collection.select('Npp').median()#.reproject(crs='EPSG:4326', scale=500)
+        image = collection.select('Npp').median()
         vis_params['palette'] = ['red', 'white', 'green']
 
     # MODIS Leaf Area Index
@@ -188,6 +188,36 @@ def get_image_url(user_workspace: str, year: str, layer: str, tile_scale: int = 
             raise EEException("No LAI data is available for this Region of Interest. Please use a different RoI")
         image = collection.select('Lai').median()
         vis_params['palette'] = ['red', 'white', 'green']
+
+    # Global Mangrove Watch
+    elif layer == 'gmw':
+        collection = ee.ImageCollection("projects/earthengine-legacy/assets/projects/sat-io/open-datasets/GMW/extent/GMW_V3").filterBounds(roi_geom).filterDate(start_date, end_date)
+        if collection.size().getInfo() == 0:
+            raise EEException("No Global Mangrove Watch data is available for this Region of Interest. Please use a different RoI")
+        image = coolection.select('b1').median().selfMask()
+        min_val, max_val = 0, 1
+        vis_params['palette'] = ['#00c5bd']
+
+    # RESOLVE Ecoregions
+    elif layer == 'ecoregions':
+        collection = ee.FeatureCollection('RESOLVE/ECOREGIONS/2017').filterBounds(roi_geom)
+        if collection.size().getInfo() == 0:
+            raise EEException("No terrestrial WDPA data is available for this Region of Interest. Please use a different RoI")
+        color_updates = [{'ECO_ID': 204, 'COLOR': '#B3493B'}, {'ECO_ID': 245, 'COLOR': '#267400'}, {'ECO_ID': 259, 'COLOR': '#004600'}, {'ECO_ID': 286, 'COLOR': '#82F178'}, {'ECO_ID': 316, 'COLOR': '#E600AA'}, {'ECO_ID': 453, 'COLOR': '#5AA500'}, {'ECO_ID': 317, 'COLOR': '#FDA87F'}, {'ECO_ID': 763, 'COLOR': '#A93800'}]
+        collection = collection.map(lambda feat: feat.set({'style': {'color': feat.get('COLOR'), 'width': 0}}))
+        for i in range(len(color_updates)):
+            color_updates[i]['layer'] = collection.filterMetadata('ECO_ID', 'equals', color_updates[i]['ECO_ID']).map(lambda f: f.set({'style': {'color': color_updates[i]['COLOR'], 'width': 0}}))
+            collection = collection.filterMetadata('ECO_ID', 'not_equals', color_updates[i]['ECO_ID']).merge(color_updates[i]['layer'])
+        image = collection.style(styleProperty='style')
+        min_val, max_val = 0, 255
+
+    # World Database of Protected Areas
+    elif layer == 'wdpa':
+        collection = ee.FeatureCollection('WCMC/WDPA/current/polygons').filterBounds(roi_geom).filter(ee.Filter.eq('REALM', 'Terrestrial'))
+        if collection.size().getInfo() == 0:
+            raise EEException("No terrestrial WDPA data is available for this Region of Interest. Please use a different RoI")
+        image = ee.Image().float().paint(collection, 'REP_AREA')
+        vis_params['palette'] = ['#2ed033', '#5aff05', '#67b9ff', '#5844ff', '#0a7618', '#2c05ff']
 
     # If a optical image (visible or index) is selected
     else:
@@ -211,6 +241,10 @@ def get_image_url(user_workspace: str, year: str, layer: str, tile_scale: int = 
 
                 else:
                     raise ValueError(f"Invalid year. Got {year}")
+
+                # If no images were found for this year, skip
+                if collection.size().getInfo() == 0:
+                    continue
 
                 # Find the first quartile (Q1) of the observation counts per pixel across the RoI
                 Q1_count = collection.select('R').count().reduceRegion(geometry=roi_geom, reducer=ee.Reducer.percentile([25]), maxPixels=1e13, scale=10*scale, tileScale=tile_scale).get('R').getInfo()
@@ -339,6 +373,7 @@ def get_image_url(user_workspace: str, year: str, layer: str, tile_scale: int = 
             background = get_user_input(user_workspace.path, 'background', year)
             samples = get_user_input(user_workspace.path, 'samples', year)
             image = get_dissimilarity_index(year=year, roi_geom=roi_geom, collection=collection, ecosystem=ecosystem, background=background, samples=samples, scale=scale, model_name=model_name, aoa=False, tile_scale=tile_scale)
+            min_val, max_val = 0, 1
             vis_params['palette'] = ['green', 'white', 'red']
     
         # Area of Applicability
@@ -347,9 +382,13 @@ def get_image_url(user_workspace: str, year: str, layer: str, tile_scale: int = 
             background = get_user_input(user_workspace.path, 'background', year)
             samples = get_user_input(user_workspace.path, 'samples', year)
             image = get_dissimilarity_index(year=year, roi_geom=roi_geom, collection=collection, ecosystem=ecosystem, background=background, samples=samples, scale=scale, model_name=model_name, aoa=False, tile_scale=tile_scale)
+            min_val, max_val = 0, 1
             vis_params['palette'] = ['red', 'white', 'green']
 
-    # Reproject the image if the scale is large and MODIS is not being used
+    # Clip the image to the RoI
+    image = image.clipToCollection(roi_collection)
+
+    # Reproject the image if the scale is large
     if scale > 100:
         image = image.reproject(crs='EPSG:4326', scale=scale)
     
@@ -362,7 +401,7 @@ def get_image_url(user_workspace: str, year: str, layer: str, tile_scale: int = 
             vis_params['min'], vis_params['max'] = float(min_val), float(max_val)
         min_str, max_str = f"Current min: {float(min_val):0.2f}", f"Current max: {float(max_val):0.2f}"
 
-    # Otherwise, show the visible bands with the regular min/max values
+    # Show some layers with specific min/max unless specified
     elif layer == 'visible':
         if int(year) >= 1983:
             vis_params['min'], vis_params['max'] = 0.0, 0.3
@@ -370,11 +409,6 @@ def get_image_url(user_workspace: str, year: str, layer: str, tile_scale: int = 
         else:
             vis_params['min'], vis_params['max'] = 0.0, 1.0
             min_str, max_str = f"Current min: 0.00", f"Current max: 1.00"
-
-    # Otherwise, show the Dissimilarity Index between 0 to 1
-    elif layer == 'di' or layer == 'aoa':
-        vis_params['min'], vis_params['max'] = 0.0, 1.0
-        min_str, max_str = f"Current min: 0.00", f"Current max: 1.00"
     
     # Automatically scale the image to its min/max values
     else:
@@ -399,7 +433,7 @@ def get_image_url(user_workspace: str, year: str, layer: str, tile_scale: int = 
         min_str, max_str = f"Current min: {float(min_val):0.2f}", f"Current max: {float(max_val):0.2f}"
 
     # Get the URL for the resulting image
-    url = image_to_map_id(image.clipToCollection(roi_collection), vis_params=vis_params)
+    url = image_to_map_id(image, vis_params=vis_params)
 
     return url, min_str, max_str, warning
 

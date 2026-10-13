@@ -528,8 +528,8 @@ def labelling(request, user_workspace):
 
     # Initialise the year and layer options
     year_options = []
-    layer_ids = ['visible', 'ndvi', 'evi', 'savi', 'ndmi', 'ndwi', 'ndbi', 'dem', 'slope', 'count']
-    layer_names = ["Visible Image", "NDVI (Vegetation)", "EVI (Enhanced Veg.)","SAVI (Soil-adj. Veg.)", "NDMI (Moisture)", "NDWI (Water)", "NDBI (Urban)", "Elevation (in metres)", "Slope (in degrees)", "Coverage (in images/pixel)"]
+    layer_ids = ['visible', 'ndvi', 'evi', 'savi', 'ndmi', 'ndwi', 'ndbi', 'dem', 'slope', 'count', 'ecoregions', 'wdpa']
+    layer_names = ["Visible Image", "NDVI (Vegetation)", "EVI (Enhanced Veg.)", "SAVI (Soil-adj. Veg.)", "NDMI (Moisture)", "NDWI (Water)", "NDBI (Urban)", "Elevation (in metres)", "Slope (in degrees)", "Coverage (in images/pixel)", "RESOLVE Ecoregions", "Protected Areas (WDPA)"]
     layer_options = list(zip(layer_names, layer_ids))
 
     # Initialise the error messages
@@ -953,6 +953,12 @@ def labelling(request, user_workspace):
             layer_options.append(("Canopy Height (in metres)", 'chm'))
         elif ("Canopy Height (in metres)", 'chm') in layer_options:
             layer_options.remove(("Canopy Height (in metres)", 'chm'))
+
+        # Add the Global Mangrove Watch for 1996 to 2020
+        if int(default_year) >= 1996 and int(default_year) <= 2020 and ("Global Mangrove Watch", 'gwm') not in layer_options:
+            layer_options.append(("Global Mangrove Watch", 'gwm'))
+        elif ("Global Mangrove Watch", 'gwm') in layer_options:
+            layer_options.remove(("Global Mangrove Watch", 'gwm'))
     
     # Select options for the remote-sensing layer to be shown on the map
     layer_input = SelectInput(name='layer',
@@ -1115,8 +1121,8 @@ def classification(request, user_workspace):
 
     # Initialise the year and layer options
     year_options = []
-    layer_ids = ['visible', 'ndvi', 'evi', 'savi', 'ndmi', 'ndwi', 'ndbi', 'dem', 'slope', 'count']
-    layer_names = ["Visible Image", "NDVI (Vegetation)","EVI (Enhanced Veg.)",  "SAVI (Soil-adj. Veg.)", "NDMI (Moisture)", "NDWI (Water)", "NDBI (Urban)", "Elevation (in metres)", "Slope (in degrees)", "Coverage (in images/pixel)"]
+    layer_ids = ['visible', 'ndvi', 'evi', 'savi', 'ndmi', 'ndwi', 'ndbi', 'dem', 'slope', 'count', 'ecoregions', 'wdpa']
+    layer_names = ["Visible Image", "NDVI (Vegetation)", "EVI (Enhanced Veg.)", "SAVI (Soil-adj. Veg.)", "NDMI (Moisture)", "NDWI (Water)", "NDBI (Urban)", "Elevation (in metres)", "Slope (in degrees)", "Coverage (in images/pixel)", "RESOLVE Ecoregions", "Protected Areas (WDPA)"]
     layer_options = list(zip(layer_names, layer_ids))
 
     # Make sure to catch any errors to keep the tool running
@@ -1269,6 +1275,12 @@ def classification(request, user_workspace):
             layer_options.append(("Canopy Height (in metres)", 'chm'))
         elif ("Canopy Height (in metres)", 'chm') in layer_options:
             layer_options.remove(("Canopy Height (in metres)", 'chm'))
+
+        # Add the Global Mangrove Watch for 1996 to 2020
+        if int(default_year) >= 1996 and int(default_year) <= 2020 and ("Global Mangrove Watch", 'gwm') not in layer_options:
+            layer_options.append(("Global Mangrove Watch", 'gwm'))
+        elif ("Global Mangrove Watch", 'gwm') in layer_options:
+            layer_options.remove(("Global Mangrove Watch", 'gwm'))
     
     # Select options for the remote-sensing layer to be shown on the map
     layer_input = SelectInput(name='layer',
