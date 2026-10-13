@@ -557,7 +557,13 @@ var LABELLING = (function() {
         } else if (m_layer === 'di') {
             m_vis_layer.tethys_legend_title = 'Dissimilarity';
         } else if (m_layer === 'aoa') {
-            m_vis_layer.tethys_legend_title = 'AOA';
+            m_vis_layer.tethys_legend_title = 'Applicability';
+        } else if (m_layer === 'gwm') {
+            m_vis_layer.tethys_legend_title = 'Mangroves';
+        } else if (m_layer === 'wdpa') {
+            m_vis_layer.tethys_legend_title = 'Protected Areas';
+        } else if (m_layer === 'ecoregions') {
+            m_vis_layer.tethys_legend_title = 'Ecoregions';
         };
 
         // Update the legend
