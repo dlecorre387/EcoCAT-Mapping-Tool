@@ -213,10 +213,11 @@ def get_image_url(user_workspace: str, year: str, layer: str, tile_scale: int = 
 
     # World Database of Protected Areas
     elif layer == 'wdpa':
-        collection = ee.FeatureCollection('WCMC/WDPA/current/polygons').filterBounds(roi_geom).filter(ee.Filter.eq('REALM', 'Terrestrial')).sort('REP_AREA', ascending=False)
+        collection = ee.FeatureCollection('WCMC/WDPA/current/polygons').filterBounds(roi_geom).filter(ee.Filter.eq('REALM', 'Terrestrial')).filter(ee.Filter.gte('REP_AREA', 100)).sort('REP_AREA', ascending=False)
         if collection.size().getInfo() == 0:
             raise EEException("No terrestrial WDPA data is available for this Region of Interest. Please use a different RoI")
         image = ee.Image().float().paint(collection, 'REP_AREA')
+        image = image.reproject(scale=10, crs=image.projection())
         vis_params['palette'] = ['#275D37', '#669900', '#CDDC00']
 
     # If a optical image (visible or index) is selected
