@@ -194,7 +194,7 @@ def get_image_url(user_workspace: str, year: str, layer: str, tile_scale: int = 
         collection = ee.ImageCollection("projects/earthengine-legacy/assets/projects/sat-io/open-datasets/GMW/extent/GMW_V3").filterBounds(roi_geom).filterDate(start_date, end_date)
         if collection.size().getInfo() == 0:
             raise EEException("No Global Mangrove Watch data is available for this Region of Interest. Please use a different RoI")
-        image = coolection.select('b1').median().selfMask()
+        image = collection.select('b1').median().selfMask()
         min_val, max_val = 0, 1
         vis_params['palette'] = ['#00c5bd']
 
