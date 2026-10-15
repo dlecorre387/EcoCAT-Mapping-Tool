@@ -528,8 +528,8 @@ def labelling(request, user_workspace):
 
     # Initialise the year and layer options
     year_options = []
-    layer_ids = ['visible', 'ndvi', 'evi', 'savi', 'ndmi', 'ndwi', 'ndbi', 'dem', 'slope', 'count', 'ecoregions', 'wdpa']
-    layer_names = ["Visible Image", "NDVI (Vegetation)", "EVI (Enhanced Veg.)", "SAVI (Soil-adj. Veg.)", "NDMI (Moisture)", "NDWI (Water)", "NDBI (Urban)", "Elevation (in metres)", "Slope (in degrees)", "Coverage (in images/pixel)", "RESOLVE Ecoregions", "Protected Areas (WDPA)"]
+    layer_ids = ['visible', 'ndvi', 'evi', 'savi', 'ndmi', 'ndwi', 'ndbi', 'dem', 'slope', 'count', 'ecoregions']
+    layer_names = ["Visible Image", "NDVI (Vegetation)", "EVI (Enhanced Veg.)", "SAVI (Soil-adj. Veg.)", "NDMI (Moisture)", "NDWI (Water)", "NDBI (Urban)", "Elevation (in metres)", "Slope (in degrees)", "Coverage (in images/pixel)", "RESOLVE Ecoregions"]
     layer_options = list(zip(layer_names, layer_ids))
 
     # Initialise the error messages
@@ -1277,7 +1277,7 @@ def classification(request, user_workspace):
             layer_options.remove(("Canopy Height (in metres)", 'chm'))
 
         # Add the Global Mangrove Watch for 1996 to 2020
-        if int(default_year) >= 1996 and int(default_year) <= 2020 and ("Global Mangrove Watch", 'gmw') not in layer_options:
+        if int(year) >= 1996 and int(year) <= 2020 and ("Global Mangrove Watch", 'gmw') not in layer_options:
             layer_options.append(("Global Mangrove Watch", 'gmw'))
         elif ("Global Mangrove Watch", 'gmw') in layer_options:
             layer_options.remove(("Global Mangrove Watch", 'gmw'))
