@@ -628,7 +628,7 @@ def get_dissimilarity_index(year: int, roi_geom: ee.Geometry, collection: ee.Ima
         return dist_image
     
     # Map over the all cluster centroids and reduce each pixel in the ImageCollection to find the nearest-neighbour
-    min_distances = ee.ImageCollection(ee.List(cluster_centroids.map(get_dist_image))).min()
+    min_distances = ee.ImageCollection(cluster_centroids.map(get_dist_image)).min()
 
     # Reshape the training samples array and subtract from itself to get the pairwise distances in predictor-space
     a = cluster_centroids_2d.reshape([1, cluster_centroids.size(), predictors.length()]).repeat(0, cluster_centroids.size())
