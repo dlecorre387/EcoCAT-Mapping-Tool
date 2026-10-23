@@ -6,7 +6,7 @@ from tethys_sdk.permissions import has_permission
 from tethys_sdk.routing import controller
 from .app import App
 from .gee.methods import *
-from .gee.layer_assets import LAYER
+from .gee.layers import LAYERS
 from .gee.roi_assets import ROI_ASSETS
 from .helpers import *
 from .model import *

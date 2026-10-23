@@ -1,7 +1,6 @@
 import ee
 from typing import Optional, Tuple
-from .roi_assets import ASSETS as ROI_ASSETS
-from .overlay_assets import ASSETS as OVERLAY_ASSETS
+from .roi_assets import ROI_ASSETS
 from ee.ee_exception import EEException
 
 def apply_scale_factors(image: ee.Image) -> ee.Image:
