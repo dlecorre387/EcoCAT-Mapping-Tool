@@ -80,10 +80,10 @@ LAYERS = {
         'end': 2025
         },
     'gmw': {
-        'name': "Global Mangrove Watch"
+        'name': "Global Mangrove Watch",
         'start': 1996,
         'end': 2020
-    }
+    },
     'ecoregions': {
         'name': "RESOLVE Ecoregions (c. 2017)",
         'start': 1982,
