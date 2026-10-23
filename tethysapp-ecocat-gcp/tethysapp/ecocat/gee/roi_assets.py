@@ -1,4 +1,4 @@
-ASSETS = {
+ROI_ASSETS = {
     'FAO_GAUL_adm0': {
         'display': "Country Boundaries",
         'asset_id': 'FAO/GAUL_SIMPLIFIED_500m/2015/level0',

@@ -513,57 +513,43 @@ var LABELLING = (function() {
 
         // Set the legend title for the layer
         if (m_layer === 'visible') {
-            m_vis_layer.tethys_legend_title = "Visible Bands";
+            m_vis_layer.tethys_legend_title = "Visible Image";
+        } else if (m_layer === 'count') {
+            m_vis_layer.tethys_legend_title = 'Coverage';
+        } else if (m_layer === 'di') {
+            m_vis_layer.tethys_legend_title = 'Dissimilarity';
         } else if (m_layer === 'ndvi') {
-            m_vis_layer.tethys_legend_title = 'NDVI - median';
-        } else if (m_layer === 'ndvi-std') {
-            m_vis_layer.tethys_legend_title = 'NDVI - st. dev.';
+            m_vis_layer.tethys_legend_title = 'NDVI';
         } else if (m_layer === 'evi') {
-            m_vis_layer.tethys_legend_title = 'EVI - median';
-        } else if (m_layer === 'evi-std') {
-            m_vis_layer.tethys_legend_title = 'EVI - st. dev.';
+            m_vis_layer.tethys_legend_title = 'EVI';
         } else if (m_layer === 'savi') {
-            m_vis_layer.tethys_legend_title = 'SAVI - median';
-        } else if (m_layer === 'savi-std') {
-            m_vis_layer.tethys_legend_title = 'SAVI - st. dev.';
+            m_vis_layer.tethys_legend_title = 'SAVI';
         } else if (m_layer === 'ndmi') {
-            m_vis_layer.tethys_legend_title = 'NDMI - median';
-        } else if (m_layer === 'ndmi-std') {
-            m_vis_layer.tethys_legend_title = 'NDMI - st. dev.';
-        } else if (m_layer === 'ndgi') {
-            m_vis_layer.tethys_legend_title = 'NDGI - median';
-        } else if (m_layer === 'ndgi-std') {
-            m_vis_layer.tethys_legend_title = 'NDGI - st. dev.';
-        } else if (m_layer === 'ndpi') {
-            m_vis_layer.tethys_legend_title = 'NDPI - median';
-        } else if (m_layer === 'ndpi-std') {
-            m_vis_layer.tethys_legend_title = 'NDPI - st. dev.';
+            m_vis_layer.tethys_legend_title = 'NDMI';
         } else if (m_layer === 'ndwi') {
-            m_vis_layer.tethys_legend_title = 'NDWI - median';
+            m_vis_layer.tethys_legend_title = 'NDWI';
         } else if (m_layer === 'ndbi') {
-            m_vis_layer.tethys_legend_title = 'NDBI - median';
+            m_vis_layer.tethys_legend_title = 'NDBI';
+        } else if (m_layer === 'lai') {
+            m_vis_layer.tethys_legend_title = 'LAI';
+        } else if (m_layer === 'npp') {
+            m_vis_layer.tethys_legend_title = 'Net. Primary Prod.';
         } else if (m_layer === 'dem') {
             m_vis_layer.tethys_legend_title = 'Elevation';
         } else if (m_layer === 'slope') {
             m_vis_layer.tethys_legend_title = 'Slope';
         } else if (m_layer === 'chm') {
             m_vis_layer.tethys_legend_title = 'Canopy Height';
-        } else if (m_layer === 'npp') {
-            m_vis_layer.tethys_legend_title = 'MODIS NPP';
-        } else if (m_layer === 'lai') {
-            m_vis_layer.tethys_legend_title = 'MODIS LAI';
-        } else if (m_layer === 'count') {
-            m_vis_layer.tethys_legend_title = 'Coverage';
-        } else if (m_layer === 'di') {
-            m_vis_layer.tethys_legend_title = 'Dissimilarity';
-        } else if (m_layer === 'aoa') {
-            m_vis_layer.tethys_legend_title = 'Applicability';
+        } else if (m_layer === 'hansen') {
+            m_vis_layer.tethys_legend_title = 'Forest Loss';
+        } else if (m_layer === 'forty') {
+            m_vis_layer.tethys_legend_title = 'Forest Typology';
         } else if (m_layer === 'gmw') {
-            m_vis_layer.tethys_legend_title = 'Mangroves';
-        } else if (m_layer === 'wdpa') {
-            m_vis_layer.tethys_legend_title = 'Protected Areas';
+            m_vis_layer.tethys_legend_title = 'Mangrove Watch';
         } else if (m_layer === 'ecoregions') {
             m_vis_layer.tethys_legend_title = 'Ecoregions';
+        } else if (m_layer === 'wdpa') {
+            m_vis_layer.tethys_legend_title = 'Protected Areas';
         };
 
         // Update the legend

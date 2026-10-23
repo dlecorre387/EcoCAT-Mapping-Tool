@@ -6,8 +6,8 @@ from tethys_sdk.permissions import has_permission
 from tethys_sdk.routing import controller
 from .app import App
 from .gee.methods import *
-from .gee.overlay_assets import ASSETS as OVERLAY_ASSETS
-from .gee.roi_assets import ASSETS as ROI_ASSETS
+from .gee.layer_assets import LAYER
+from .gee.roi_assets import ROI_ASSETS
 from .helpers import *
 from .model import *
 
@@ -528,9 +528,8 @@ def labelling(request, user_workspace):
 
     # Initialise the year and layer options
     year_options = []
-    layer_ids = ['visible', 'ndvi', 'evi', 'savi', 'ndmi', 'ndwi', 'ndbi', 'dem', 'slope', 'count', 'ecoregions']
-    layer_names = ["Visible Image", "NDVI (Vegetation)", "EVI (Enhanced Veg.)", "SAVI (Soil-adj. Veg.)", "NDMI (Moisture)", "NDWI (Water)", "NDBI (Urban)", "Elevation (in metres)", "Slope (in degrees)", "Coverage (in images/pixel)", "RESOLVE Ecoregions"]
-    layer_options = list(zip(layer_names, layer_ids))
+    layer_ids = LAYERS.keys()
+    layer_names = [LAYERS[l]['name'] for l in layer_ids]
 
     # Initialise the error messages
     year_error = ""
@@ -933,33 +932,12 @@ def labelling(request, user_workspace):
                             attributes={'form': 'label-form',
                                         'id': 'year'})
 
-    # Add some other layer options
+    # Remove invalid layer options
     if default_year:
+        layer_options = [(layer_name, layer_id) for layer_name, layer_id in zip(layer_names, layer_ids) if default_year >= LAYERS[layer_id]['start'] and default_year <= LAYERS[layer_id]['end'] and layer_id != 'wdpa']
+    else:
+        layer_options = []
 
-        # Add MODIS Leaf Area Index
-        if int(default_year) >= 2000 and ("MODIS Leaf Area Index", 'lai') not in layer_options:
-            layer_options.append(("MODIS Leaf Area Index", 'lai'))
-        elif ("MODIS Leaf Area Index", 'lai') in layer_ids:
-            layer_options.remove(("MODIS Leaf Area Index", 'lai'))
-
-        # Add MODIS Net Primary Production
-        if int(default_year) >= 2000 and ("MODIS NPP (in kg/m2)", 'npp') not in layer_options:
-            layer_options.append(("MODIS NPP (in kg/m2)", 'npp'))
-        elif ("MODIS NPP (in kg/m2)", 'npp') in layer_options:
-            layer_options.remove(("MODIS NPP (in kg/m2)", 'npp'))
-
-        # Add the canopy height model for 2019
-        if int(default_year) == 2019 and ("Canopy Height (in metres)", 'chm') not in layer_options:
-            layer_options.append(("Canopy Height (in metres)", 'chm'))
-        elif ("Canopy Height (in metres)", 'chm') in layer_options:
-            layer_options.remove(("Canopy Height (in metres)", 'chm'))
-
-        # Add the Global Mangrove Watch for 1996 to 2020
-        if int(default_year) >= 1996 and int(default_year) <= 2020 and ("Global Mangrove Watch", 'gmw') not in layer_options:
-            layer_options.append(("Global Mangrove Watch", 'gmw'))
-        elif ("Global Mangrove Watch", 'gwm') in layer_options:
-            layer_options.remove(("Global Mangrove Watch", 'gmw'))
-    
     # Select options for the remote-sensing layer to be shown on the map
     layer_input = SelectInput(name='layer',
                             display_text="",
@@ -1116,20 +1094,15 @@ def classification(request, user_workspace):
     year_error = ''
 
     # Initialise the view of the map and the overlay GeoJSON
-    overlay = None
     map_layers = []
 
     # Initialise the year and layer options
     year_options = []
-    layer_ids = ['visible', 'ndvi', 'evi', 'savi', 'ndmi', 'ndwi', 'ndbi', 'dem', 'slope', 'count', 'ecoregions', 'wdpa']
-    layer_names = ["Visible Image", "NDVI (Vegetation)", "EVI (Enhanced Veg.)", "SAVI (Soil-adj. Veg.)", "NDMI (Moisture)", "NDWI (Water)", "NDBI (Urban)", "Elevation (in metres)", "Slope (in degrees)", "Coverage (in images/pixel)", "RESOLVE Ecoregions", "Protected Areas (WDPA)"]
-    layer_options = list(zip(layer_names, layer_ids))
+    layer_ids = LAYERS.keys()
+    layer_names = [LAYERS[l]['name'] for l in layer_ids]
 
     # Make sure to catch any errors to keep the tool running
     try:
-
-        # Define the default and initial GEE asset options
-        asset_options = [(OVERLAY_ASSETS[k]['display'], k) for k in OVERLAY_ASSETS.keys()]
 
         # Get the user input as a dictionary if it exists
         user_dict = get_user_input(user_workspace.path, 'input')
@@ -1182,47 +1155,6 @@ def classification(request, user_workspace):
             layer = request.POST.get('layer', None)
             year = request.POST.get('year', None)
 
-            # If an overlay has been selected
-            if 'overlay' in request.POST:
-
-                # Check whether an overlay has been selected from a list of assets
-                asset = request.POST.get('asset', None)
-                level1 = request.POST.get('level1', None)
-                level2 = request.POST.get('level2', None)
-                if all([asset, level1, level2]):
-                    overlay = get_overlay(asset=asset, 
-                                        level1=level1, 
-                                        level2=level2,
-                                        roi=roi)
-                    overlay_name = OVERLAY_ASSETS[asset]['level1'][level1]['level2'][level2]['name']
-
-                # Check whether an overlay file was uploaded
-                if request.FILES and 'overlay-file' in request.FILES:
-                    overlay = handle_upload(request, id='overlay-file')
-                    overlay_name = "Custom Overlay"
-                
-                # Raise an error if no overlay geometry was received
-                if not overlay:
-                    raise ValueError("Please select or upload an overlay")
-                
-                # Check that the overaly geometry is valid
-                overlay, overlay_error = check_geom(overlay)
-                if len(overlay['features']) == 0:
-                    raise ValueError(overlay_error)
-
-                # Add the overlay as an uneditable MVLayer
-                overlay_layer = MVLayer(source='GeoJSON',
-                                    options=overlay,
-                                    layer_options={'style': {'ol.style.Style': {'image': {'ol.style.Circle': {'fill': {'ol.style.Fill': {'color': 'rgba(255, 0, 255, 1.0)'}}, 'radius': 5}},
-                                                                                'stroke': {'ol.style.Stroke': {'color': 'rgba(255, 0, 255, 1.0)', 'width': 3}},
-                                                                                'fill': {'ol.style.Fill': {'color': 'rgba(255, 0, 255, 0.5)'}}}}},
-                                    legend_title=overlay_name,
-                                    legend_extent=calculate_extent(overlay),
-                                    legend_classes=[],
-                                    editable=False,
-                                    feature_selection=False)
-                map_layers.insert(0, overlay_layer)
-
     # Raise any errors
     except Exception as e:
         messages.error(request, f"Error: '{type(e).__name__}: {e}'")
@@ -1257,30 +1189,9 @@ def classification(request, user_workspace):
 
     # Add some other layer options
     if year:
-
-        # Add MODIS Leaf Area Index
-        if int(year) >= 2000 and ("MODIS Leaf Area Index", 'lai') not in layer_options:
-            layer_options.append(("MODIS Leaf Area Index", 'lai'))
-        elif ("MODIS Leaf Area Index", 'lai') in layer_ids:
-            layer_options.remove(("MODIS Leaf Area Index", 'lai'))
-
-        # Add MODIS Net Primary Production
-        if int(year) >= 2000 and ("MODIS NPP (in kg/m2)", 'npp') not in layer_options:
-            layer_options.append(("MODIS NPP (in kg/m2)", 'npp'))
-        elif ("MODIS NPP (in kg/m2)", 'npp') in layer_options:
-            layer_options.remove(("MODIS NPP (in kg/m2)", 'npp'))
-
-        # Add the canopy height model for 2019
-        if int(year) == 2019 and ("Canopy Height (in metres)", 'chm') not in layer_options:
-            layer_options.append(("Canopy Height (in metres)", 'chm'))
-        elif ("Canopy Height (in metres)", 'chm') in layer_options:
-            layer_options.remove(("Canopy Height (in metres)", 'chm'))
-
-        # Add the Global Mangrove Watch for 1996 to 2020
-        if int(year) >= 1996 and int(year) <= 2020 and ("Global Mangrove Watch", 'gmw') not in layer_options:
-            layer_options.append(("Global Mangrove Watch", 'gmw'))
-        elif ("Global Mangrove Watch", 'gmw') in layer_options:
-            layer_options.remove(("Global Mangrove Watch", 'gmw'))
+        layer_options = [(layer_name, layer_id) for layer_name, layer_id in zip(layer_names, layer_ids) if year >= LAYERS[layer_id]['start'] and year <= LAYERS[layer_id]['end']]
+    else:
+        layer_options = []
     
     # Select options for the remote-sensing layer to be shown on the map
     layer_input = SelectInput(name='layer',
@@ -1312,36 +1223,7 @@ def classification(request, user_workspace):
                         icon='image-fill',
                         style='secondary',
                         attributes={'id': 'load'})
-    
-    # Select options for the GEE asset to use as an overlay
-    asset_input = SelectInput(name='asset',
-                            display_text="",
-                            options=asset_options,
-                            select2_options={'placeholder': 'Select an Earth Engine asset'},)
-
-    # Select options for the level 1 filter (e.g. country or biome)
-    level1_input = SelectInput(name='level1',
-                            display_text="",
-                            options=[],
-                            select2_options={'placeholder': ''},
-                            disabled=True)
-    
-    # Select options for the level 2 option (e.g. protected area or IUCN typology category)
-    level2_input = SelectInput(name='level2',
-                            display_text="",
-                            options=[],
-                            select2_options={'placeholder': ''},
-                            disabled=True)
-    
-    # Button to display an overlay on the map
-    overlay_button = Button(name='overlay',
-                        display_text="Load Overlay",
-                        icon='stack',
-                        style='secondary',
-                        attributes={'form': 'overlay-form',
-                                    'id':'overlay'},
-                        submit=True)
-        
+            
     # Button to quickly return to the labelling page
     label_button = Button(name='labelling',
                         display_text='Edit Labels',
@@ -1379,16 +1261,11 @@ def classification(request, user_workspace):
             'min_input': min_input,
             'max_input': max_input,
             'load_button': load_button,
-            'asset_input': asset_input,
-            'level1_input': level1_input,
-            'level2_input': level2_input,
-            'overlay_button': overlay_button,
             'label_button': label_button,
             'classify_button': classify_button,
             'metrics_button': metrics_button,
             'export_button': export_button,
-            'map_view': map_view,
-            'assets': OVERLAY_ASSETS}
+            'map_view': map_view}
 
     return App.render(request, 'classification.html', context)
 

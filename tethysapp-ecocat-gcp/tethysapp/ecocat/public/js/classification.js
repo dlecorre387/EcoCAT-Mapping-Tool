@@ -8,14 +8,11 @@ var MAPPING = (function() {
     *                      MODULE LEVEL / GLOBAL VARIABLES
     *************************************************************************/
     
-    // Constants
-    var ASSETS;
-
     // Not sure what this is for yet
     var public_interface;
 
     // Selector variables
-    var m_year, m_layer, m_asset, m_level1, m_level2, m_min_val, m_max_val;
+    var m_year, m_layer, m_min_val, m_max_val;
 
     // Map variables
     var m_map, m_vis_layer, m_pr_layer, m_cl_layer;
@@ -25,7 +22,7 @@ var MAPPING = (function() {
     *************************************************************************/
     
     // Dataset select methods
-    var bind_controls, update_level1_options, update_level2_options, get_metrics, download_export, collect_data;
+    var bind_controls, get_metrics, download_export, collect_data;
 
     // Layer methods
     var update_vis_map, update_vis_layer, create_vis_layer, clear_vis_layer;
@@ -153,74 +150,6 @@ var MAPPING = (function() {
             };
         });
 
-        // If the asset has been changed
-        $('#asset').on('change', function() {
-
-            // Get the new asset value
-            let asset = $('#asset').val();
-
-            // If the new asset value is different from the previous one
-            if (asset !== m_asset) {
-
-                // Reassign the asset variable
-                m_asset = asset;
-
-                // Log the change to the console
-                console.log(`GEE asset choice changed to: ${m_asset}`);
-
-                // Update the level 1 options when asset changes
-                update_level1_options();
-
-            };
-        });
-
-        // If the level 1 has been changed
-        $('#level1').on('change', function() {
-
-            // Get the new level 1 value
-            let level1 = $('#level1').val();
-
-            // If the new level 1 value is different from the previous one
-            if (level1 !== m_level1) {
-
-                // Reassign the level 1 variable
-                m_level1 = level1;
-
-                // Log the change to the console
-                console.log(`Level 1 choice changed to: ${m_level1}`);
-
-                // Update the level 2 options when level 1 changes
-                update_level2_options();
-
-            };
-        });
-
-        // If the level 2 has been changed
-        $('#level2').on('change', function() {
-
-            // Get the new level 2 value
-            let level2 = $('#level2').val();
-
-            // If the new level 2 value is different from the previous one
-            if (level2 !== m_level2) {
-
-                // Reassign the level 2 variable
-                m_level2 = level2;
-
-                // Log the change to the console
-                console.log(`Level 2 choice changed to: ${m_level2}`);
-
-            };
-        });
-
-        // If the overlay button has been clicked
-        $('#overlay').on('click', function() {
-
-            // Show the loading icon
-            $('#loader').addClass('show');
-
-        });
-
         // If the classify button has been clicked
         $('#classify').on('click', function() {
 
@@ -269,120 +198,6 @@ var MAPPING = (function() {
         };
     };
 
-    // Update the level 1 options if the asset changes
-    update_level1_options = function() {
-
-        // Make sure the level 1 box is enabled
-        $('#level1').prop("disabled", false);
-
-        // If the asset is not in the list of known assets
-        if (!m_asset in ASSETS) {
-            alert('Unknown platform selected.');
-        }
-
-        // Clear level 1 options and set the placeholder
-        if (m_asset == "IUCN") {
-            $('#level1').data('select2-options', {
-                placeholder: "Select a biome"
-            }).empty();
-        } else if (m_asset == "WDPA") {
-            $('#level1').data('select2-options', {
-                placeholder: "Filter regions by country"
-            }).empty();
-        };
-
-        // Add an empty option to get the placeholder to appear
-        let empty_option = new Option();
-        $('#level1').append(empty_option);
-
-        // Loop through each available level 1 boundary for the selected asset
-        for (var level1 in ASSETS[m_asset]['level1']) {
-
-            // Get the level 1 display name
-            var level1name = ASSETS[m_asset]['level1'][level1]['name'];
-            
-            // Create a new level 1 option
-            let new_option = new Option(level1name, level1);
-
-            // Add the boundary to the list of options
-            $('#level1').append(new_option);
-
-        };
-
-        // Sort the options alphabetically
-        var options = $('#level1 option').toArray();
-        options.sort(function(a, b) {
-            let aa = a.textContent;
-            let bb = b.textContent;
-            if (aa.toUpperCase() > bb.toUpperCase()) return 1;
-            else if (aa.toUpperCase() < bb.toUpperCase()) return -1;
-            else return 0;
-        }); 
-        
-        // Clear the options again and readd the sorted options
-        $('#level1').select2($('#level1').data('select2-options')).empty().append(options);
-
-        // Trigger a level 2 change event to update the options
-        $('#level1').trigger('change');
-        update_level2_options();
-
-    };
-
-    // Update the level 2 options if the level 1 changes
-    update_level2_options = function() {
-
-        // Make sure the level 2 box is enabled
-        if (m_level1 != "") {
-
-            $('#level2').prop("disabled", false);
-
-            // If the asset is not in the list of known assets
-            if (!m_asset in ASSETS) {
-                alert('Unknown platform selected.');
-            };
-
-            // Clear level 2 options
-            $('#level2').select2($('#level2').data('select2-options')).empty();
-
-            // Add an empty option to get the placeholder to appear
-            let empty_option = new Option();
-            $('#level2').append(empty_option);
-
-            // Loop through each available level 2 boundary for the selected asset
-            for (var level2 in ASSETS[m_asset]['level1'][m_level1]['level2']) {
-
-                // Get the level 2 display name
-                var level2name = ASSETS[m_asset]['level1'][m_level1]['level2'][level2]['name'];
-
-                // Create a new level 2 option
-                let new_option = new Option(level2name, level2);
-
-                // Add the boundary to the list of options
-                $('#level2').append(new_option);
-
-            };
-
-            // Sort the options alphabetically
-            var options = $('#level2 option').toArray();
-            options.sort(function(a, b) {
-                let aa = a.textContent;
-                let bb = b.textContent;
-                if (aa.toUpperCase() > bb.toUpperCase()) return 1;
-                else if (aa.toUpperCase() < bb.toUpperCase()) return -1;
-                else return 0;
-            });
-            
-            // Clear the options again and readd the sorted options
-            $('#level2').select2($('#level2').data('select2-options')).empty().append(options);
-
-        } else {
-
-            $('#level2').select2($('#level2').data('select2-options')).empty();
-            $('#level2').prop("disabled", true);
-
-        };
-    };
-
     // Display the metrics on screen
     get_metrics = function() {
 
@@ -411,9 +226,6 @@ var MAPPING = (function() {
             xhr.abort();
         });
         $('#load').on('click', function() {
-            xhr.abort();
-        });
-        $('#overlay').on('click', function() {
             xhr.abort();
         });
         $('#export').on('click', function() {
@@ -497,9 +309,6 @@ var MAPPING = (function() {
             xhr.abort();
         });
         $('#load').on('click', function() {
-            xhr.abort();
-        });
-        $('#overlay').on('click', function() {
             xhr.abort();
         });
         $('#export').on('click', function() {
@@ -607,9 +416,6 @@ var MAPPING = (function() {
         $('#load').on('click', function() {
             xhr.abort();
         });
-        $('#overlay').on('click', function() {
-            xhr.abort();
-        });
         $('#export').on('click', function() {
             xhr.abort();
         });
@@ -706,9 +512,6 @@ var MAPPING = (function() {
             xhr.abort();
         });
         $('#load').on('click', function() {
-            xhr.abort();
-        });
-        $('#overlay').on('click', function() {
             xhr.abort();
         });
         $('#export').on('click', function() {
@@ -849,57 +652,43 @@ var MAPPING = (function() {
         
         // Set the legend title for the layer
         if (m_layer === 'visible') {
-            m_vis_layer.tethys_legend_title = "Visible Bands";
+            m_vis_layer.tethys_legend_title = "Visible Image";
+        } else if (m_layer === 'count') {
+            m_vis_layer.tethys_legend_title = 'Coverage';
+        } else if (m_layer === 'di') {
+            m_vis_layer.tethys_legend_title = 'Dissimilarity';
         } else if (m_layer === 'ndvi') {
-            m_vis_layer.tethys_legend_title = 'NDVI - median';
-        } else if (m_layer === 'ndvi-std') {
-            m_vis_layer.tethys_legend_title = 'NDVI - st. dev.';
+            m_vis_layer.tethys_legend_title = 'NDVI';
         } else if (m_layer === 'evi') {
-            m_vis_layer.tethys_legend_title = 'EVI - median';
-        } else if (m_layer === 'evi-std') {
-            m_vis_layer.tethys_legend_title = 'EVI - st. dev.';
+            m_vis_layer.tethys_legend_title = 'EVI';
         } else if (m_layer === 'savi') {
-            m_vis_layer.tethys_legend_title = 'SAVI - median';
-        } else if (m_layer === 'savi-std') {
-            m_vis_layer.tethys_legend_title = 'SAVI - st. dev.';
+            m_vis_layer.tethys_legend_title = 'SAVI';
         } else if (m_layer === 'ndmi') {
-            m_vis_layer.tethys_legend_title = 'NDMI - median';
-        } else if (m_layer === 'ndmi-std') {
-            m_vis_layer.tethys_legend_title = 'NDMI - st. dev.';
-        } else if (m_layer === 'ndgi') {
-            m_vis_layer.tethys_legend_title = 'NDGI - median';
-        } else if (m_layer === 'ndgi-std') {
-            m_vis_layer.tethys_legend_title = 'NDGI - st. dev.';
-        } else if (m_layer === 'ndpi') {
-            m_vis_layer.tethys_legend_title = 'NDPI - median';
-        } else if (m_layer === 'ndpi-std') {
-            m_vis_layer.tethys_legend_title = 'NDPI - st. dev.';
+            m_vis_layer.tethys_legend_title = 'NDMI';
         } else if (m_layer === 'ndwi') {
-            m_vis_layer.tethys_legend_title = 'NDWI - median';
+            m_vis_layer.tethys_legend_title = 'NDWI';
         } else if (m_layer === 'ndbi') {
-            m_vis_layer.tethys_legend_title = 'NDBI - median';
+            m_vis_layer.tethys_legend_title = 'NDBI';
+        } else if (m_layer === 'lai') {
+            m_vis_layer.tethys_legend_title = 'LAI';
+        } else if (m_layer === 'npp') {
+            m_vis_layer.tethys_legend_title = 'Net. Primary Prod.';
         } else if (m_layer === 'dem') {
             m_vis_layer.tethys_legend_title = 'Elevation';
         } else if (m_layer === 'slope') {
             m_vis_layer.tethys_legend_title = 'Slope';
         } else if (m_layer === 'chm') {
             m_vis_layer.tethys_legend_title = 'Canopy Height';
-        } else if (m_layer === 'npp') {
-            m_vis_layer.tethys_legend_title = 'MODIS NPP';
-        } else if (m_layer === 'lai') {
-            m_vis_layer.tethys_legend_title = 'MODIS LAI';
-        } else if (m_layer === 'count') {
-            m_vis_layer.tethys_legend_title = 'Coverage';
-        } else if (m_layer === 'di') {
-            m_gee_layer.tethys_legend_title = 'Dissimilarity';
-        } else if (m_layer === 'aoa') {
-            m_vis_layer.tethys_legend_title = 'Applicability';
+        } else if (m_layer === 'hansen') {
+            m_vis_layer.tethys_legend_title = 'Forest Loss';
+        } else if (m_layer === 'forty') {
+            m_vis_layer.tethys_legend_title = 'Forest Typology';
         } else if (m_layer === 'gmw') {
-            m_vis_layer.tethys_legend_title = 'Mangroves';
-        } else if (m_layer === 'wdpa') {
-            m_vis_layer.tethys_legend_title = 'Protected Areas';
+            m_vis_layer.tethys_legend_title = 'Mangrove Watch';
         } else if (m_layer === 'ecoregions') {
             m_vis_layer.tethys_legend_title = 'Ecoregions';
+        } else if (m_layer === 'wdpa') {
+            m_vis_layer.tethys_legend_title = 'Protected Areas';
         };
 
         // Update the legend
@@ -1022,9 +811,6 @@ var MAPPING = (function() {
         // Initialise Global Variables
         bind_controls();
 
-        // GEE asset info
-        ASSETS = $('#assets').data('assets');
-
         // Initialise the year
         m_year = $('#year').val();
 
@@ -1036,15 +822,6 @@ var MAPPING = (function() {
 
         // Initialise the max value
         m_max_val = $('#max').val();
-
-        // Initialise the asset choice
-        m_asset = $('#asset').val();
-
-        // Initialise the level 1 choice
-        m_level1 = $('#level1').val();
-
-        // Initialise the level 2 choice
-        m_level2 = $('#level2').val();
 
         // Initialise the map
         m_map = TETHYS_MAP_VIEW.getMap();

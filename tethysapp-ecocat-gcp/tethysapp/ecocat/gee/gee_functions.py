@@ -601,96 +601,39 @@ def get_dissimilarity_index(year: int, roi_geom: ee.Geometry, collection: ee.Ima
     # Get the predictors from the training data
     predictors = training_data.bandNames()
 
-    # Randomly shuffle the training data
-    train_samples = train_samples.randomColumn('shuffle', seed=seed).sort('shuffle')
+    # Define a X-means clusterer and train it on the training samples
+    trained_clusterer = ee.Clusterer.wekaXMeans(minClusters=1, maxClusters=10, seed=seed).train(train_samples, predictors, subSamplingSeed=seed)
 
-    # Remove all null samples
-    train_samples = train_samples.select(predictors.add('class')).filter(ee.Filter.notNull(predictors.add('class'))).limit(1000)
+    # Cluster the training samples
+    clusters = train_samples.cluster(trained_clusterer)
 
-    # Define the parameters for a random forest classifier
-    if model_name == 'RF':
-        sqrt_features = ee.Number(predictors.length()).pow(0.5).round().int()
-        model = ee.Classifier.smileRandomForest(numberOfTrees=500,                  # Number of trees in the entire forest [Recommended value: 100-500]
-                                                variablesPerSplit=sqrt_features,    # Max. features to consider for a node split [Recommended value: sqrt(no. features)]
-                                                minLeafPopulation=3,                # Min. samples in a leaf to create a node [Recommended value: 1-5]
-                                                bagFraction=0.5,                    # Fraction of the training data to be randomly selected per tree [Recommended value: 0.5]
-                                                maxNodes=20,                        # Max. nodes in a single tree [Recommended value: 10-30]
-                                                seed=seed)                          # Set the random seed for reproducability
-    
-    # Define the parameters for a k-NN classifier
-    elif model_name == 'kNN':
-        model = ee.Classifier.smileKNN(k=5,                                         # Number of neighbours for classification
-                                    searchMethod='AUTO',                            # Automatically choose search method
-                                    metric='EUCLIDEAN')                             # Distance metric to use
-        
-    # Define the parameters for a support vector machine classifier
-    elif model_name == 'SVM':
-        model = ee.Classifier.libsvm(decisionProcedure='Voting',                    # Decision procedure to use for classification (Voting or Margin)
-                                    svmType='C_SVC',                                # SVM type (only C_SVC and NU_SVC work with probability mode)
-                                    kernelType='RBF',                               # Kernel type (LINEAR, POLY, RBF or SIGMOID)
-                                    shrinking=True,                                 # Whether to use shrinking heuristics
-                                    degree=None,                                    # Degree of polynomial if using POLY for kernelType
-                                    gamma=None,                                     # Gamma value in kernel function, defaults to 1/N_features (POLY, RBF and SIGMOID only)
-                                    coef0=None,                                     # Coefficient value in POLY and SIGMOID functions, defaults to 0
-                                    cost=10,                                        # Cost parameter for C-SVC, defaults to 1
-                                    nu=None)                                        # Nu parameter for NU-SVC, defaults to 0.5
+    # Get a list of the cluster IDs
+    cluster_ids = clusters.aggregate_array('cluster').distinct()
 
-    # Define the parameters for a CART classifier
-    elif model_name == 'CART':
-        model = ee.Classifier.smileCart(maxNodes=10,                                # Max number of leaf nodes in each tree
-                                        minLeafPopulation=1)                        # Only create nodes whose training set contains at least this many points
-
-    else:
-        raise NotImplementedError("Only random forest ('RF'), k-NN ('kNN') and support vector machine ('SVM') classifiers are implemented.")
-
-    # Train the model
-    trained_model = model.train(features=train_samples, classProperty="class", inputProperties=predictors)
-
-    # Retrieve the three most important variables
-    importances = ee.Dictionary(trained_model.explain().get('importance'))
-    important_vars = importances.keys().sort(importances.values()).reverse()
-    if n_predictors:
-        important_vars = important_vars.slice(0, n_predictors)
-
-    # Work out the relative importance of each variable to use as weights
-    weights = importances.values().sort().reverse()
-    if n_predictors:
-        weights = weights.slice(0, n_predictors)
-    weights = ee.Array(weights).divide(ee.Number(weights.reduce(ee.Reducer.sum())))
-
-    # Weight the pixel values according to the variable importances
-    weighted_image = training_data.select(important_vars).multiply(ee.Image.constant(weights.toList()))
-
-    # Cast the predictor values to a single list containing all values
-    def collate_values(feat):
-        values = feat.toArray(important_vars)
-        return ee.Feature(None, {'values': values.multiply(weights).toList()})
-    weighted_samples = train_samples.map(collate_values)
-
-    # Shuffle the samples
-    weighted_samples = weighted_samples.randomColumn('shuffle', seed=seed).sort('shuffle')
+    # Find the mean (centroid) of every cluster
+    def get_cluster_centroid(cluster_id):
+        cluster = clusters.filter(ee.Filter.eq('cluster', cluster_id))
+        arrays = cluster.map(lambda feat: ee.Feature(None, {'vars': feat.toArray(predictors)})).aggregate_array('vars')
+        mean_array = ee.Array(arrays).reduce(ee.Reducer.mean(), [0]).toList()
+        return ee.Feature(None, {'values': mean_array})
+    clustered_samples = ee.FeatureCollection(cluster_ids.map(get_cluster_centroid))
 
     # Convert the collection of lists into a single 2D array ([n_samples, n_predictors])
-    samples_list = weighted_samples.aggregate_array('values')
-    samples_2d = ee.Array(samples_list)
+    clustered_samples_list = clustered_samples.aggregate_array('values')
+    clustered_samples_2d = ee.Array(clustered_samples)
 
     # Calculate the Euclidean distances from each pixel to a given training sample in predictor-space
     def get_dist_image(feat):
-
-        # Create a constant multi-band image from this training sample's predictor values
-        sample_img = ee.Image.constant(feat.get('values')).rename(important_vars)
-        
-        # Calculate Euclidean distance
-        dist_image = weighted_image.select(important_vars).subtract(sample_img).pow(2).reduce(ee.Reducer.sum()).sqrt()
-
+        sample_img = ee.Image.constant(feat.get('values')).rename(predictors)
+        dist_image = training_data.select(predictors).subtract(sample_img).pow(2).reduce(ee.Reducer.sum()).sqrt()
         return dist_image
     
     # Map over the all training samples and reduce each pixel in the ImageCollection to find the nearest-neighbour
-    min_distances = ee.ImageCollection(weighted_samples.map(get_dist_image)).reduce(ee.Reducer.min())#.rename('min_dist')
+    min_distances = ee.ImageCollection(clustered_samples.map(get_dist_image)).reduce(ee.Reducer.min())
 
     # Reshape the training samples array and subtract from itself to get the pairwise distances in predictor-space
-    a = samples_2d.reshape([1, weighted_samples.size(), important_vars.length()]).repeat(0, weighted_samples.size())
-    b = samples_2d.reshape([weighted_samples.size(), 1, important_vars.length()]).repeat(1, weighted_samples.size())
+    a = clustered_samples_2d.reshape([1, clustered_samples.size(), predictors.length()]).repeat(0, clustered_samples.size())
+    b = clustered_samples_2d.reshape([clustered_samples.size(), 1, predictors.length()]).repeat(1, clustered_samples.size())
     nn_distances = a.subtract(b).pow(2).reduce(ee.Reducer.sum(), [2]).sqrt()
 
     # Convert to a list and flatten in order to remove duplicate distances and zeroes before finding the mean
@@ -702,51 +645,7 @@ def get_dissimilarity_index(year: int, roi_geom: ee.Geometry, collection: ee.Ima
     # Calculate the Dissimilarity Index (DI)
     dissimilarity = min_distances.divide(d_mean).rename('DI')
 
-    # If the Area of Applicability is being plotted
-    if aoa:
-
-        # Loop through each fold
-        def get_all_outfold_dist(fold):
-
-            # Define the inside-fold filter
-            fold_filter = ee.Filter.And(ee.Filter.gte('shuffle', ee.Number(fold).multiply(1 / n_folds)), ee.Filter.lte('shuffle', (ee.Number(fold).add(1)).multiply(1 / n_folds)))
-
-            # Select the fold to calculate distances for
-            infold_samples = weighted_samples.filter(fold_filter)
-            infold_samples_list = infold_samples.aggregate_array('values')
-
-            # Extract the outside-fold training samples to calculate the distances to
-            outfold_samples = weighted_samples.filter(ee.Filter.Not(fold_filter))
-            outfold_samples_2d = ee.Array(outfold_samples.aggregate_array('values'))
-
-            # Calculate the outside-fold nearest-neighbour Euclidean distance of a training sample
-            def get_outfold_nn_dist(infold_sample):
-                infold_sample = ee.Array(infold_sample)
-                infold_sample_2d = infold_sample.reshape([1, important_vars.length()]).repeat(0, outfold_samples.size())
-                outfold_dist = outfold_samples_2d.subtract(infold_sample_2d).pow(2).reduce(ee.Reducer.sum(), [1]).sqrt()
-                return ee.Number(outfold_dist.toList().flatten().sort().get(1)).divide(d_mean)
-
-            # Map over the inside-fold training samples and calculate the distances
-            outfold_distances = ee.List(infold_samples_list.map(get_outfold_nn_dist))
-            
-            return outfold_distances
-
-        # Get the outside-fold nearest neighbour distances for n CV folds
-        all_outfold_distances = ee.List.sequence(0, n_folds - 1).map(get_all_outfold_dist).flatten()
-
-        # Sort the distances smallest to largest, and slice between Q1 and Q3 to get the IQR
-        distances_Q1_to_Q3 = all_outfold_distances.sort().slice(ee.Number(all_outfold_distances.length()).multiply(0.25).toInt(), ee.Number(all_outfold_distances.length()).multiply(0.75).toInt())
-        distances_IQR = ee.Number(distances_Q1_to_Q3.get(-1)).subtract(ee.Number(distances_Q1_to_Q3.get(0)))
-
-        # Get the threshold for the Area of Applicability (AoA)
-        aoa_thresh = ee.Number(ee.Number(distances_Q1_to_Q3.get(-1)).add(distances_IQR.multiply(1.5)))
-
-        return dissimilarity.lte(aoa_thresh)
-
-    # If the Dissimilarity Index over the RoI is being plotted
-    else:
-
-        return dissimilarity
+    return dissimilarity
 
 def get_landsat_collection(year: str, window: int, roi_geom: ee.Geometry, cloud_filter: bool = False) -> ee.ImageCollection:
     """

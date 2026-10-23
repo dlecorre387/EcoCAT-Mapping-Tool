@@ -148,8 +148,26 @@ def get_image_url(user_workspace: str, year: str, layer: str, tile_scale: int = 
     start_date = ee.Date.fromYMD(int(year), 1, 1)
     end_date = ee.Date.fromYMD(1 + int(year), 1, 1)
 
+    # MODIS Leaf Area Index
+    if layer == 'lai':
+        collection = ee.ImageCollection('MODIS/061/MCD15A3H').filterBounds(roi_geom).filterDate(start_date, end_date)
+        if collection.size().getInfo() == 0:
+            raise EEException("No LAI data is available for this Region of Interest. Please use a different RoI")
+        image = collection.select('Lai').median()
+        vis_params['palette'] = ['red', 'white', 'green']
+
+    # MODIS Net Primary Productivity
+    elif layer == 'npp':
+        npp_terra_collection = ee.ImageCollection('MODIS/061/MOD17A3HGF').filterBounds(roi_geom).filterDate(start_date, end_date)
+        npp_aqua_collection = ee.ImageCollection('MODIS/061/MYD17A3HGF').filterBounds(roi_geom).filterDate(start_date, end_date)
+        collection = npp_terra_collection.merge(npp_aqua_collection)
+        if collection.size().getInfo() == 0:
+            raise EEException("No NPP data is available for this Region of Interest. Please use a different RoI")
+        image = collection.select('Npp').median()
+        vis_params['palette'] = ['red', 'white', 'green']
+
     # Elevation
-    if layer == 'dem':
+    elif layer == 'dem':
         collection = ee.ImageCollection('projects/sat-io/open-datasets/FABDEM').filterBounds(roi_geom)
         if collection.size().getInfo() == 0:
             raise ValueError("No DEM data is available for this Region of Interest (RoI). Please use a different RoI")
@@ -171,23 +189,25 @@ def get_image_url(user_workspace: str, year: str, layer: str, tile_scale: int = 
         image = collection.mosaic()
         vis_params['palette'] = ['red', 'white', 'green']
 
-    # MODIS Net Primary Productivity
-    elif layer == 'npp':
-        npp_terra_collection = ee.ImageCollection('MODIS/061/MOD17A3HGF').filterBounds(roi_geom).filterDate(start_date, end_date)
-        npp_aqua_collection = ee.ImageCollection('MODIS/061/MYD17A3HGF').filterBounds(roi_geom).filterDate(start_date, end_date)
-        collection = npp_terra_collection.merge(npp_aqua_collection)
-        if collection.size().getInfo() == 0:
-            raise EEException("No NPP data is available for this Region of Interest. Please use a different RoI")
-        image = collection.select('Npp').median()
-        vis_params['palette'] = ['red', 'white', 'green']
+    # Hansen Forest Loss since 2000
+    elif layer == 'hansen':
+        image = ee.Image('UMD/hansen/global_forest_change_2025_v1_13').select('lossyear').add(2000)
+        min_val, max_val = 2001, int(year)
+        vis_params['palette'] = ['yellow', 'red']
 
-    # MODIS Leaf Area Index
-    elif layer == 'lai':
-        collection = ee.ImageCollection('MODIS/061/MCD15A3H').filterBounds(roi_geom).filterDate(start_date, end_date)
+    # Google DeepMind Forest Typology V2 Beta
+    elif layer == 'forty':
+        try:
+            collection = ee.ImageCollection(f'projects/nature-trace/assets/forest_typology/v2_beta/{year}').filterBounds(roi_geom)
+        except:
+            raise EEException("Could not access Forest Typology data for this year")
         if collection.size().getInfo() == 0:
-            raise EEException("No LAI data is available for this Region of Interest. Please use a different RoI")
-        image = collection.select('Lai').median()
-        vis_params['palette'] = ['red', 'white', 'green']
+            raise EEException("No Forest Typology data is available for this Region of Interest. Please use a different RoI")
+        image = collection.mosaic().toArray().arrayArgmax().arrayGet([0]).add(1)
+        image = image.updateMask(image.neq(6))
+        image = image.where(image.eq(7), 1)
+        min_val, max_val = 1, 5
+        vis_params['palette'] = ['#1B7837', '#7FBF7B', '#1D91C0', '#E65FA9']
 
     # Global Mangrove Watch
     elif layer == 'gmw':
@@ -202,7 +222,7 @@ def get_image_url(user_workspace: str, year: str, layer: str, tile_scale: int = 
     elif layer == 'ecoregions':
         collection = ee.FeatureCollection('RESOLVE/ECOREGIONS/2017').filterBounds(roi_geom)
         if collection.size().getInfo() == 0:
-            raise EEException("No terrestrial WDPA data is available for this Region of Interest. Please use a different RoI")
+            raise EEException("No Ecoregions data is available for this Region of Interest. Please use a different RoI")
         color_updates = [{'ECO_ID': 204, 'COLOR': '#B3493B'}, {'ECO_ID': 245, 'COLOR': '#267400'}, {'ECO_ID': 259, 'COLOR': '#004600'}, {'ECO_ID': 286, 'COLOR': '#82F178'}, {'ECO_ID': 316, 'COLOR': '#E600AA'}, {'ECO_ID': 453, 'COLOR': '#5AA500'}, {'ECO_ID': 317, 'COLOR': '#FDA87F'}, {'ECO_ID': 763, 'COLOR': '#A93800'}]
         collection = collection.map(lambda feat: feat.set({'style': {'color': feat.get('COLOR'), 'width': 0}}))
         for i in range(len(color_updates)):
@@ -376,15 +396,6 @@ def get_image_url(user_workspace: str, year: str, layer: str, tile_scale: int = 
             min_val, max_val = 0, 1
             vis_params['palette'] = ['green', 'white', 'red']
     
-        # Area of Applicability
-        elif layer == 'aoa':
-            ecosystem = get_user_input(user_workspace.path, 'ecosystem', year)
-            background = get_user_input(user_workspace.path, 'background', year)
-            samples = get_user_input(user_workspace.path, 'samples', year)
-            image = get_dissimilarity_index(year=year, roi_geom=roi_geom, collection=collection, ecosystem=ecosystem, background=background, samples=samples, scale=scale, model_name=model_name, aoa=False, tile_scale=tile_scale)
-            min_val, max_val = 0, 1
-            vis_params['palette'] = ['red', 'white', 'green']
-
     # Clip the image to the RoI
     image = image.clipToCollection(roi_collection)
 
