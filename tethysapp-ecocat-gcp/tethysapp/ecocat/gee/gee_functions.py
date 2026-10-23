@@ -612,13 +612,14 @@ def get_dissimilarity_index(year: int, roi_geom: ee.Geometry, collection: ee.Ima
     # Find the mean (centroid) of every cluster
     def get_cluster_centroid(cluster_id):
         cluster = clusters.filter(ee.Filter.eq('cluster', cluster_id))
-        arrays = cluster.map(lambda feat: ee.Feature(None, {'vars': feat.toArray(predictors)})).aggregate_array('vars')
+        arrays = cluster.map(lambda feat: ee.Feature(None, {'vars': feat.toArray(predictors).toList()})).aggregate_array('vars')
         mean_array = ee.Array(arrays).reduce(ee.Reducer.mean(), [0]).toList()
-        return mean_array
+        return ee.Feature(None, {'values': mean_array})
+    cluster_centroids = ee.FeatureCollection(cluster_ids.map(get_cluster_centroid))
 
     # Convert the collection of lists into a single 2D array ([n_samples, n_predictors])
-    clustered_samples_list = ee.List(cluster_ids.map(get_cluster_centroid))
-    clustered_samples_2d = ee.Array(clustered_samples_list)
+    cluster_centroids_list = cluster_centroids.aggregate_array('values')
+    cluster_centroids_2d = ee.Array(cluster_centroids_list)
 
     # Calculate the Euclidean distances from each pixel to a given training sample in predictor-space
     def get_dist_image(feat):
@@ -626,12 +627,12 @@ def get_dissimilarity_index(year: int, roi_geom: ee.Geometry, collection: ee.Ima
         dist_image = training_data.select(predictors).subtract(sample_img).pow(2).reduce(ee.Reducer.sum()).sqrt()
         return dist_image
     
-    # Map over the all training samples and reduce each pixel in the ImageCollection to find the nearest-neighbour
-    min_distances = ee.ImageCollection(clustered_samples.map(get_dist_image)).reduce(ee.Reducer.min())
+    # Map over the all cluster centroids and reduce each pixel in the ImageCollection to find the nearest-neighbour
+    min_distances = ee.ImageCollection(ee.List(cluster_centroids.map(get_dist_image))).min()
 
     # Reshape the training samples array and subtract from itself to get the pairwise distances in predictor-space
-    a = clustered_samples_2d.reshape([1, clustered_samples.size(), predictors.length()]).repeat(0, clustered_samples.size())
-    b = clustered_samples_2d.reshape([clustered_samples.size(), 1, predictors.length()]).repeat(1, clustered_samples.size())
+    a = cluster_centroids_2d.reshape([1, cluster_centroids.size(), predictors.length()]).repeat(0, cluster_centroids.size())
+    b = cluster_centroids_2d.reshape([cluster_centroids.size(), 1, predictors.length()]).repeat(1, cluster_centroids.size())
     nn_distances = a.subtract(b).pow(2).reduce(ee.Reducer.sum(), [2]).sqrt()
 
     # Convert to a list and flatten in order to remove duplicate distances and zeroes before finding the mean
