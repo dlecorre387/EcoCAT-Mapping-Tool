@@ -5,7 +5,7 @@ LAYERS = {
         'end': 2025
         }, 
     'count': {
-        'name': "Coverage (in images/pixel)",
+        'name': "Coverage (images/pixel)",
         'start': 1982,
         'end': 2025
         }, 
@@ -50,22 +50,22 @@ LAYERS = {
         'end': 2025
         },
     'npp': {
-        'name': "Net Primary Prod. (in kg/m2)",
+        'name': "Net Primary Prod. (kg/m2)",
         'start': 2000,
         'end': 2025
         },
     'dem': {
-        'name': "Elevation (in metres)",
+        'name': "Elevation (metres)",
         'start': 1982,
         'end': 2025
         }, 
     'slope': {
-        'name': "Slope (in degrees)",
+        'name': "Slope (degrees)",
         'start': 1982,
         'end': 2025
         }, 
     'chm': {
-        'name': "Canopy Height (in metres)",
+        'name': "Canopy Height (metres)",
         'start': 2019,
         'end': 2019
         },
@@ -75,7 +75,7 @@ LAYERS = {
         'end': 2025
         },
     'forty': {
-        'name': "Forest Typology (V2 Beta)",
+        'name': "Forest Typology V2 Beta",
         'start': 2017,
         'end': 2025
         },
@@ -85,7 +85,7 @@ LAYERS = {
         'end': 2020
     },
     'ecoregions': {
-        'name': "RESOLVE Ecoregions (c. 2017)",
+        'name': "RESOLVE Ecoregions 2017",
         'start': 1982,
         'end': 2025
         }, 

@@ -601,7 +601,7 @@ def get_dissimilarity_index(year: int, roi_geom: ee.Geometry, collection: ee.Ima
     predictors = training_data.bandNames()
 
     # Define a X-means clusterer and train it on the training samples
-    trained_clusterer = ee.Clusterer.wekaXMeans(minClusters=1, maxClusters=10, seed=seed).train(train_samples, predictors, subSamplingSeed=seed)
+    trained_clusterer = ee.Clusterer.wekaXMeans(minClusters=1, maxClusters=10, seed=seed).train(train_samples, predictors, subsamplingSeed=seed)
 
     # Cluster the training samples
     clusters = train_samples.cluster(trained_clusterer)
