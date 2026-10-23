@@ -132,7 +132,6 @@ def get_image_url(user_workspace: str, year: str, layer: str, tile_scale: int = 
 
     # Get the scale of the mapping and the model name (for DI calculation)
     scale = user_dict['scale']
-    model_name = user_dict['model']
 
     # Get the RoI as a GeoJSON if it exists
     roi_geom = get_user_input(user_workspace.path, 'roi')
@@ -392,7 +391,7 @@ def get_image_url(user_workspace: str, year: str, layer: str, tile_scale: int = 
             ecosystem = get_user_input(user_workspace.path, 'ecosystem', year)
             background = get_user_input(user_workspace.path, 'background', year)
             samples = get_user_input(user_workspace.path, 'samples', year)
-            image = get_dissimilarity_index(year=year, roi_geom=roi_geom, collection=collection, ecosystem=ecosystem, background=background, samples=samples, scale=scale, model_name=model_name, aoa=False, tile_scale=tile_scale)
+            image = get_dissimilarity_index(year=year, roi_geom=roi_geom, collection=collection, ecosystem=ecosystem, background=background, samples=samples, scale=scale, tile_scale=tile_scale)
             min_val, max_val = 0, 1
             vis_params['palette'] = ['green', 'white', 'red']
     
