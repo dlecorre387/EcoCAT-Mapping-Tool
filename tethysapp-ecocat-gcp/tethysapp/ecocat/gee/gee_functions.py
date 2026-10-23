@@ -616,6 +616,8 @@ def get_dissimilarity_index(year: int, roi_geom: ee.Geometry, collection: ee.Ima
         mean_array = ee.Array(arrays).reduce(ee.Reducer.mean(), [0]).toList()
         return ee.Feature(None, {'values': mean_array})
     cluster_centroids = ee.FeatureCollection(cluster_ids.map(get_cluster_centroid))
+    print(cluster_centroids.size().getInfo())
+    print(cluster_centroids.first().getInfo())
 
     # Convert the collection of lists into a single 2D array ([n_samples, n_predictors])
     cluster_centroids_list = cluster_centroids.aggregate_array('values')
@@ -623,7 +625,7 @@ def get_dissimilarity_index(year: int, roi_geom: ee.Geometry, collection: ee.Ima
 
     # Calculate the Euclidean distances from each pixel to a given training sample in predictor-space
     def get_dist_image(feat):
-        sample_img = ee.Image.constant(ee.Array(feat.get('values'))).rename(predictors)
+        sample_img = ee.ImageCollection(ee.List(feat.get('values')).map(lambda var: ee.Image.constant(var))).toBands().rename(predictors)
         dist_image = training_data.select(predictors).subtract(sample_img).pow(2).reduce(ee.Reducer.sum()).sqrt()
         return dist_image
     
