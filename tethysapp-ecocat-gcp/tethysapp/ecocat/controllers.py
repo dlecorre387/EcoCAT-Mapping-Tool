@@ -934,7 +934,7 @@ def labelling(request, user_workspace):
 
     # Remove invalid layer options
     if default_year:
-        layer_options = [(layer_name, layer_id) for layer_name, layer_id in zip(layer_names, layer_ids) if default_year >= LAYERS[layer_id]['start'] and default_year <= LAYERS[layer_id]['end'] and layer_id != 'wdpa']
+        layer_options = [(layer_name, layer_id) for layer_name, layer_id in zip(layer_names, layer_ids) if int(default_year) >= LAYERS[layer_id]['start'] and int(default_year) <= LAYERS[layer_id]['end'] and layer_id != 'wdpa']
     else:
         layer_options = []
 
@@ -1189,7 +1189,7 @@ def classification(request, user_workspace):
 
     # Add some other layer options
     if year:
-        layer_options = [(layer_name, layer_id) for layer_name, layer_id in zip(layer_names, layer_ids) if year >= LAYERS[layer_id]['start'] and year <= LAYERS[layer_id]['end']]
+        layer_options = [(layer_name, layer_id) for layer_name, layer_id in zip(layer_names, layer_ids) if int(year) >= LAYERS[layer_id]['start'] and int(year) <= LAYERS[layer_id]['end']]
     else:
         layer_options = []
     
