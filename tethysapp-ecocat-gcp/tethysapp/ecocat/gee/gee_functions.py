@@ -528,34 +528,24 @@ def get_dissimilarity_index(year: int, roi_geom: ee.Geometry, collection: ee.Ima
 
         # If the ecosystem was labelled using points
         if ecosystem['features'][0]['geometry']['type'] == 'Point':
-            ecosystem_samples = training_data.sampleRegions(collection=ecosystem_collection, tileScale=tile_scale, geometries=True)
+            ecosystem_samples = training_data.sampleRegions(collection=ecosystem_collection, tileScale=tile_scale)
 
         # If the ecosystem was labelled using polygons
         elif ecosystem['features'][0]['geometry']['type'] == 'Polygon':
             ecosystem_points = ecosystem_collection.map(fixed_grid).flatten()
-            ecosystem_samples = training_data.sampleRegions(collection=ecosystem_points, tileScale=tile_scale, geometries=True)
+            ecosystem_samples = training_data.sampleRegions(collection=ecosystem_points, tileScale=tile_scale)
 
         # If the background was labelled using points
         if background['features'][0]['geometry']['type'] == 'Point':
-            background_samples = training_data.sampleRegions(collection=background_collection, tileScale=tile_scale, geometries=True)
+            background_samples = training_data.sampleRegions(collection=background_collection, tileScale=tile_scale)
 
         # If the background was labelled using polygons
         elif background['features'][0]['geometry']['type'] == 'Polygon':
             background_points = background_collection.map(fixed_grid).flatten()
-            background_samples = training_data.sampleRegions(collection=background_points, tileScale=tile_scale, geometries=True)
-
-        # Assign the class label to each sample
-        ecosystem_samples = ecosystem_samples.map(lambda feat: feat.set('class', 1))
-        background_samples = background_samples.map(lambda feat: feat.set('class', 0))
+            background_samples = training_data.sampleRegions(collection=background_points, tileScale=tile_scale)
 
         # Split the classes equally between training and validation sets
-        ecosystem_samples = ecosystem_samples.randomColumn(columnName='split', seed=seed)
-        background_samples = background_samples.randomColumn(columnName='split', seed=seed)
-
-        # Get the training samples
-        train_ecosystem_samples = ecosystem_samples.filter('split <= 0.8')
-        train_background_samples = background_samples.filter('split <= 0.8')
-        train_samples = train_ecosystem_samples.merge(train_background_samples)
+        merged_samples = ecosystem_samples.merge(background_samples)
 
         # If the user has also provided training samples, merge them
         if samples is not None:
@@ -564,18 +554,10 @@ def get_dissimilarity_index(year: int, roi_geom: ee.Geometry, collection: ee.Ima
             samples = ee.FeatureCollection(samples)
             user_ecosystem_samples = samples.filter(ee.Filter.eq('class', 1))
             user_background_samples = samples.filter(ee.Filter.eq('class', 0))
-
-            # Split the classes equally between training and validation sets
-            user_ecosystem_samples = user_ecosystem_samples.randomColumn(columnName='split', seed=seed)
-            user_background_samples = user_background_samples.randomColumn(columnName='split', seed=seed)
-
-            # Get the training samples
-            user_train_ecosystem_samples = user_ecosystem_samples.filter('split <= 0.8')
-            user_train_background_samples = user_background_samples.filter('split <= 0.8')
-            user_train_samples = user_train_ecosystem_samples.merge(user_train_background_samples)
+            user_merged_samples = user_ecosystem_samples.merge(user_background_samples)
 
             # Merge with the existing training samples
-            train_samples = train_samples.merge(user_train_samples)
+            merged_samples = merged_samples.merge(user_merged_samples)
 
     # If training samples have been provided
     elif samples is not None:
@@ -584,15 +566,7 @@ def get_dissimilarity_index(year: int, roi_geom: ee.Geometry, collection: ee.Ima
         samples = ee.FeatureCollection(samples)
         ecosystem_samples = samples.filter(ee.Filter.eq('class', 1))
         background_samples = samples.filter(ee.Filter.eq('class', 0))
-
-        # Split the classes equally between training and validation sets
-        ecosystem_samples = ecosystem_samples.randomColumn(columnName='split', seed=seed)
-        background_samples = background_samples.randomColumn(columnName='split', seed=seed)
-
-        # Get the training samples
-        train_ecosystem_samples = ecosystem_samples.filter('split <= 0.8')
-        train_background_samples = background_samples.filter('split <= 0.8')
-        train_samples = train_ecosystem_samples.merge(train_background_samples)
+        merged_samples = ecosystem_samples.merge(background_samples)
 
     else:
         raise ValueError(f"Neither ecosystem/background labels, or sampled pixel values, have been provided for {year}")
@@ -601,10 +575,10 @@ def get_dissimilarity_index(year: int, roi_geom: ee.Geometry, collection: ee.Ima
     predictors = training_data.bandNames()
 
     # Define a X-means clusterer and train it on the training samples
-    trained_clusterer = ee.Clusterer.wekaXMeans(minClusters=2, maxClusters=10, seed=seed).train(train_samples, predictors, subsamplingSeed=seed)
+    trained_clusterer = ee.Clusterer.wekaXMeans(minClusters=1, maxClusters=20, seed=seed).train(merged_samples, predictors, subsamplingSeed=seed)
 
     # Cluster the training samples
-    clusters = train_samples.cluster(trained_clusterer)
+    clusters = merged_samples.cluster(trained_clusterer)
 
     # Get a list of the cluster IDs
     cluster_ids = clusters.aggregate_array('cluster').distinct()
@@ -616,8 +590,6 @@ def get_dissimilarity_index(year: int, roi_geom: ee.Geometry, collection: ee.Ima
         mean_array = ee.Array(arrays).reduce(ee.Reducer.mean(), [0]).toList()
         return ee.Feature(None, {'values': mean_array})
     cluster_centroids = ee.FeatureCollection(cluster_ids.map(get_cluster_centroid))
-    print(cluster_centroids.size().getInfo())
-    print(cluster_centroids.first().getInfo())
 
     # Convert the collection of lists into a single 2D array ([n_samples, n_predictors])
     cluster_centroids_list = cluster_centroids.aggregate_array('values')
