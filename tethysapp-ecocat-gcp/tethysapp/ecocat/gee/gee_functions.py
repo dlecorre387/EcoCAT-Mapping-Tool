@@ -493,7 +493,7 @@ def cluster_ecosystem(roi: dict, ecosystem: Optional[dict], background: Optional
 
     return probabilities, model_info, train_matrix, val_matrix
 
-def get_dissimilarity_index(year: int, roi_geom: ee.Geometry, collection: ee.ImageCollection, ecosystem: Optional[dict], background: Optional[dict], samples: Optional[dict], scale: int, model_name: str, aoa: bool, tile_scale: int = 1, n_predictors: Optional[int] = None, n_folds: int = 3, seed: int = 42, factor: int = 5) -> ee.Image:
+def get_dissimilarity_index(year: int, roi_geom: ee.Geometry, collection: ee.ImageCollection, ecosystem: Optional[dict], background: Optional[dict], samples: Optional[dict], scale: int, tile_scale: int = 1, seed: int = 42, factor: int = 5) -> ee.Image:
     
     # If using Landsat as the training data
     if int(year) < 2017:
@@ -619,7 +619,7 @@ def get_dissimilarity_index(year: int, roi_geom: ee.Geometry, collection: ee.Ima
 
     # Convert the collection of lists into a single 2D array ([n_samples, n_predictors])
     clustered_samples_list = clustered_samples.aggregate_array('values')
-    clustered_samples_2d = ee.Array(clustered_samples)
+    clustered_samples_2d = ee.Array(clustered_samples_list)
 
     # Calculate the Euclidean distances from each pixel to a given training sample in predictor-space
     def get_dist_image(feat):
