@@ -601,7 +601,7 @@ def get_dissimilarity_index(year: int, roi_geom: ee.Geometry, collection: ee.Ima
     predictors = training_data.bandNames()
 
     # Define a X-means clusterer and train it on the training samples
-    trained_clusterer = ee.Clusterer.wekaXMeans(minClusters=1, maxClusters=10, seed=seed).train(train_samples, predictors, subsamplingSeed=seed)
+    trained_clusterer = ee.Clusterer.wekaXMeans(minClusters=2, maxClusters=10, seed=seed).train(train_samples, predictors, subsamplingSeed=seed)
 
     # Cluster the training samples
     clusters = train_samples.cluster(trained_clusterer)
@@ -623,12 +623,12 @@ def get_dissimilarity_index(year: int, roi_geom: ee.Geometry, collection: ee.Ima
 
     # Calculate the Euclidean distances from each pixel to a given training sample in predictor-space
     def get_dist_image(feat):
-        sample_img = ee.Image.constant(ee.Array(feat.get('values'))).rename(predictors)
+        sample_img = ee.Image.constant(feat.get('values')).rename(predictors)
         dist_image = training_data.select(predictors).subtract(sample_img).pow(2).reduce(ee.Reducer.sum()).sqrt()
         return dist_image
     
     # Map over the all cluster centroids and reduce each pixel in the ImageCollection to find the nearest-neighbour
-    min_distances = ee.ImageCollection(cluster_centroids.map(get_dist_image)).min()
+    min_distances = ee.ImageCollection(cluster_centroids.map(get_dist_image)).reduce(ee.Reducer.min())
 
     # Reshape the training samples array and subtract from itself to get the pairwise distances in predictor-space
     a = cluster_centroids_2d.reshape([1, cluster_centroids.size(), predictors.length()]).repeat(0, cluster_centroids.size())
