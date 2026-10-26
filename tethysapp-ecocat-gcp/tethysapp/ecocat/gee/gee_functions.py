@@ -507,8 +507,12 @@ def get_dissimilarity_index(year: int, roi_geom: ee.Geometry, collection: ee.Ima
     # If using AlphaEarth satellite embeddings as the training data
     elif int(year) >= 2017:
 
+        # Get the start and end date to use for filtering
+        start_date = ee.Date.fromYMD(int(year), 1, 1)
+        end_date = start_date.advance(1, 'year')
+
         # Collect the AlphaEarth satellite embeddings and filter by year
-        training_data = ee.ImageCollection("GOOGLE/SATELLITE_EMBEDDING/V1/ANNUAL").filterBounds(roi_geom).filterDate(int(year), int(year) + 1).median()
+        training_data = ee.ImageCollection("GOOGLE/SATELLITE_EMBEDDING/V1/ANNUAL").filterBounds(roi_geom).filterDate(start_date, end_date).median()
 
     # Reproject to the chosen scale
     training_data = training_data.reproject(crs='EPSG:4326', scale=scale)
