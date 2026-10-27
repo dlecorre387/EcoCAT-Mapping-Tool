@@ -657,6 +657,10 @@ var MAPPING = (function() {
             m_vis_layer.tethys_legend_title = 'Coverage';
         } else if (m_layer === 'di') {
             m_vis_layer.tethys_legend_title = 'Dissimilarity';
+        } else if (m_layer === 'di-ecosystem') {
+            m_vis_layer.tethys_legend_title = 'Dis. (ecosystem)';
+        } else if (m_layer === 'di-background') {
+            m_vis_layer.tethys_legend_title = 'Dis. (background)';
         } else if (m_layer === 'ndvi') {
             m_vis_layer.tethys_legend_title = 'NDVI';
         } else if (m_layer === 'evi') {

@@ -19,7 +19,7 @@ LAYERS = {
         'start': 1982,
         'end': 2025
         },  
-    'di': {
+    'di-background': {
         'name': "Dissimilarity (background)",
         'start': 1982,
         'end': 2025
