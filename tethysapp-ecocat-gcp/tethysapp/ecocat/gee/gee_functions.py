@@ -493,7 +493,7 @@ def cluster_ecosystem(roi: dict, ecosystem: Optional[dict], background: Optional
 
     return probabilities, model_info, train_matrix, val_matrix
 
-def get_dissimilarity_index(year: int, roi_geom: ee.Geometry, collection: ee.ImageCollection, ecosystem: Optional[dict], background: Optional[dict], samples: Optional[dict], scale: int, tile_scale: int = 1, seed: int = 42, factor: int = 5) -> ee.Image:
+def get_dissimilarity_index(year: int, roi_geom: ee.Geometry, mode: str, collection: ee.ImageCollection, ecosystem: Optional[dict], background: Optional[dict], samples: Optional[dict], scale: int, tile_scale: int = 1, seed: int = 42, factor: int = 5) -> ee.Image:
     
     # If using Landsat as the training data
     if int(year) < 2017:
@@ -517,64 +517,59 @@ def get_dissimilarity_index(year: int, roi_geom: ee.Geometry, collection: ee.Ima
     # Reproject to the chosen scale
     training_data = training_data.reproject(crs='EPSG:4326', scale=scale)
 
-    # Define a function for creating a fixed grid of points within a polygon
-    def fixed_grid(feat):
-        geom = ee.Feature(feat).geometry()
-        grids = geom.coveringGrid(proj=geom.projection(), scale=factor*scale)
-        return grids.map(lambda grid: ee.Feature(ee.Feature(grid).centroid(maxError=0.1))).filter(ee.Filter.contains(leftValue=geom, rightField='.geo'))
+    # If the dissimilarity index should be calculated for both classes
+    if mode = 'both':
 
-    # If training samples have not been provided, but point/polygon labels have
-    if (ecosystem is not None and background is not None):
+        # Get the ecosystem and background samples, and merged with previous training samples (if available)
+        if ecosystem is not None and background is not None:
+            ecosystem_samples = sample_image(training_data, ecosystem, factor, scale, tile_scale)
+            background_samples = sample_image(training_data, background, factor, scale, tile_scale)
+            merged_samples = ecosystem_samples.merge(background_samples)
+            if samples is not None:
+                merged_samples = merged_samples.merge(ee.FeatureCollection(samples))
 
-        # Convert the ecosystem and background labels to GEE FeatureCollections
-        ecosystem_collection = ee.FeatureCollection(ecosystem)
-        background_collection = ee.FeatureCollection(background)
+        # Otherwise, use previous training samples
+        elif samples is not None:
+            merged_samples = ee.FeatureCollection(samples)
 
-        # If the ecosystem was labelled using points
-        if ecosystem['features'][0]['geometry']['type'] == 'Point':
-            ecosystem_samples = training_data.sampleRegions(collection=ecosystem_collection, tileScale=tile_scale)
+        else:
+            raise ValueError("No samples could be found")
 
-        # If the ecosystem was labelled using polygons
-        elif ecosystem['features'][0]['geometry']['type'] == 'Polygon':
-            ecosystem_points = ecosystem_collection.map(fixed_grid).flatten()
-            ecosystem_samples = training_data.sampleRegions(collection=ecosystem_points, tileScale=tile_scale)
+    # If the dissimilarity index should only be calculated for ecosystem
+    elif mode = 'ecosystem':
 
-        # If the background was labelled using points
-        if background['features'][0]['geometry']['type'] == 'Point':
-            background_samples = training_data.sampleRegions(collection=background_collection, tileScale=tile_scale)
+        # Get the ecosystem samples, and merged with previous training samples (if available)
+        if ecosystem is not None:
+            merged_samples = sample_image(training_data, ecosystem, factor, scale, tile_scale)
+            if samples is not None:
+                merged_samples = merged_samples.merge(ee.FeatureCollection(samples).filter(ee.Filter.eq('class', 1)))
 
-        # If the background was labelled using polygons
-        elif background['features'][0]['geometry']['type'] == 'Polygon':
-            background_points = background_collection.map(fixed_grid).flatten()
-            background_samples = training_data.sampleRegions(collection=background_points, tileScale=tile_scale)
+        # Otherwise, use previous training samples
+        elif samples is not None:
+            merged_samples = ee.FeatureCollection(samples).filter(ee.Filter.eq('class', 1))
 
-        # Split the classes equally between training and validation sets
-        merged_samples = ecosystem_samples.merge(background_samples)
+        else:
+            raise ValueError("No ecosystem samples could be found")
 
-        # If the user has also provided training samples, merge them
-        if samples is not None:
+    # If the dissimilarity index should only be calculated for background
+    elif mode = 'background':
 
-            # Convert the samples to a GEE FeatureCollection and then separate by class
-            samples = ee.FeatureCollection(samples)
-            user_ecosystem_samples = samples.filter(ee.Filter.eq('class', 1))
-            user_background_samples = samples.filter(ee.Filter.eq('class', 0))
-            user_merged_samples = user_ecosystem_samples.merge(user_background_samples)
+        # Get the background samples, and merged with previous training samples (if available)
+        if background is not None: 
+            merged_samples = sample_image(training_data, background, factor, scale, tile_scale)
+            if samples is not None:
+                merged_samples = merged_samples.merge(ee.FeatureCollection(samples).filter(ee.Filter.eq('class', 0)))
 
-            # Merge with the existing training samples
-            merged_samples = merged_samples.merge(user_merged_samples)
+        # Otherwise, use previous training samples
+        elif samples is not None:
+            merged_samples = ee.FeatureCollection(samples).filter(ee.Filter.eq('class', 0))
 
-    # If training samples have been provided
-    elif samples is not None:
-
-        # Convert the samples to a GEE FeatureCollection and then separate by class
-        samples = ee.FeatureCollection(samples)
-        ecosystem_samples = samples.filter(ee.Filter.eq('class', 1))
-        background_samples = samples.filter(ee.Filter.eq('class', 0))
-        merged_samples = ecosystem_samples.merge(background_samples)
-
+        else:
+            raise ValueError("No background samples could be found")
+    
     else:
-        raise ValueError(f"Neither ecosystem/background labels, or sampled pixel values, have been provided for {year}")
-
+        raise ValueError("Invalid mode, must be 'ecosystem', 'background', or 'both'")
+    
     # Get the predictors from the training data
     predictors = training_data.bandNames()
 
@@ -1025,6 +1020,34 @@ def order_by_median(image: ee.Image) -> ee.Image:
     centred_image = image.subtract(median_image).abs().multiply(-1)
 
     return centred_image.copyProperties(image, ['system:time_start', 'CLOUD_COVER_LAND'])
+
+def sample_image(image, collection, factor, scale, tile_scale):
+    
+    # Define a function for creating a fixed grid of points within a polygon
+    def fixed_grid(feat):
+        geom = ee.Feature(feat).geometry()
+        grids = geom.coveringGrid(proj=geom.projection(), scale=factor*scale)
+        return grids.map(lambda grid: ee.Feature(ee.Feature(grid).centroid(maxError=0.1))).filter(ee.Filter.contains(leftValue=geom, rightField='.geo'))
+
+    # Check that labels have been provided
+    if collection is not None:
+        
+        # Convert the labels to a GEE FeatureCollection
+        gee_collection = ee.FeatureCollection(collection)
+
+        # If the ecosystem was labelled using points
+        if collection['features'][0]['geometry']['type'] == 'Point':
+            samples = image.sampleRegions(collection=gee_collection, tileScale=tile_scale)
+
+        # If the ecosystem was labelled using polygons
+        elif ecosystem['features'][0]['geometry']['type'] == 'Polygon':
+            points = gee_collection.map(fixed_grid).flatten()
+            samples = image.sampleRegions(collection=points, tileScale=tile_scale)
+
+    else:
+        raise ValueError("No labels could be found for this class")
+
+    return samples
 
 def S2_mask(image: ee.Image) -> ee.Image:
     """

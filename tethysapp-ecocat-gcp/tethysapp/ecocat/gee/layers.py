@@ -10,7 +10,17 @@ LAYERS = {
         'end': 2025
         }, 
     'di': {
-        'name': "Dissimilarity Index (DI)",
+        'name': "Dissimilarity (both)",
+        'start': 1982,
+        'end': 2025
+        },  
+    'di-ecosystem': {
+        'name': "Dissimilarity (ecosystem)",
+        'start': 1982,
+        'end': 2025
+        },  
+    'di': {
+        'name': "Dissimilarity (background)",
         'start': 1982,
         'end': 2025
         }, 

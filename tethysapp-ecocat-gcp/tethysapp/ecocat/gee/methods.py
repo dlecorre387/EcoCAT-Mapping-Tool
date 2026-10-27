@@ -386,12 +386,28 @@ def get_image_url(user_workspace: str, year: str, layer: str, tile_scale: int = 
             image = collection.map(lambda img: img.normalizedDifference(['SWIR1', 'NIR'])).median()
             vis_params['palette'] = ['red', 'white', 'green']
 
-        # Dissimilarity Index
+        # Dissimilarity Index (both classes)
         elif layer == 'di':
             ecosystem = get_user_input(user_workspace.path, 'ecosystem', year)
             background = get_user_input(user_workspace.path, 'background', year)
             samples = get_user_input(user_workspace.path, 'samples', year)
-            image = get_dissimilarity_index(year=year, roi_geom=roi_geom, collection=collection, ecosystem=ecosystem, background=background, samples=samples, scale=scale, tile_scale=tile_scale)
+            image = get_dissimilarity_index(year=year, roi_geom=roi_geom, mode='both', collection=collection, ecosystem=ecosystem, background=background, samples=samples, scale=scale, tile_scale=tile_scale)
+            min_val, max_val = 0, 1
+            vis_params['palette'] = ['green', 'white', 'red']
+        
+        # Dissimilarity Index (just ecosystem)
+        elif layer == 'di-ecosystem':
+            ecosystem = get_user_input(user_workspace.path, 'ecosystem', year)
+            samples = get_user_input(user_workspace.path, 'samples', year)
+            image = get_dissimilarity_index(year=year, roi_geom=roi_geom, mode='ecosystem', collection=collection, ecosystem=ecosystem, background=None, samples=samples, scale=scale, tile_scale=tile_scale)
+            min_val, max_val = 0, 1
+            vis_params['palette'] = ['green', 'white', 'red']
+
+        # Dissimilarity Index (just background)
+        elif layer == 'di-background':
+            background = get_user_input(user_workspace.path, 'background', year)
+            samples = get_user_input(user_workspace.path, 'samples', year)
+            image = get_dissimilarity_index(year=year, roi_geom=roi_geom, mode='background', collection=collection, ecosystem=None, background=background, samples=samples, scale=scale, tile_scale=tile_scale)
             min_val, max_val = 0, 1
             vis_params['palette'] = ['green', 'white', 'red']
     
