@@ -518,7 +518,7 @@ def get_dissimilarity_index(year: int, roi_geom: ee.Geometry, mode: str, collect
     training_data = training_data.reproject(crs='EPSG:4326', scale=scale)
 
     # If the dissimilarity index should be calculated for both classes
-    if mode = 'both':
+    if mode == 'both':
 
         # Get the ecosystem and background samples, and merged with previous training samples (if available)
         if ecosystem is not None and background is not None:
@@ -536,7 +536,7 @@ def get_dissimilarity_index(year: int, roi_geom: ee.Geometry, mode: str, collect
             raise ValueError("No samples could be found")
 
     # If the dissimilarity index should only be calculated for ecosystem
-    elif mode = 'ecosystem':
+    elif mode == 'ecosystem':
 
         # Get the ecosystem samples, and merged with previous training samples (if available)
         if ecosystem is not None:
@@ -552,7 +552,7 @@ def get_dissimilarity_index(year: int, roi_geom: ee.Geometry, mode: str, collect
             raise ValueError("No ecosystem samples could be found")
 
     # If the dissimilarity index should only be calculated for background
-    elif mode = 'background':
+    elif mode == 'background':
 
         # Get the background samples, and merged with previous training samples (if available)
         if background is not None: 
