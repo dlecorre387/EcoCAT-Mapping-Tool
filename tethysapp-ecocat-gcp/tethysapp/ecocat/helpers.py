@@ -24,8 +24,11 @@ def handle_upload(request: dict, id: str) -> Optional[dict]:
         raise FileNotFoundError("No uploaded files could be found")
 
     # Get the names and extensions of each file
-    file_names = [os.path.splitext(file.name)[0] for file in uploaded_files]
-    file_exts = [os.path.splitext(file.name)[1].lower() for file in uploaded_files]
+    try:
+        file_names = [os.path.splitext(file.name)[0] for file in uploaded_files]
+        file_exts = [os.path.splitext(file.name)[1].lower() for file in uploaded_files]
+    except Exception as e:
+        print(e, uploaded_files)
 
     # Check that only one GeoJSON or one Shapefile (along with ancillaries) have been uploaded
     if '.geojson' in file_exts:
