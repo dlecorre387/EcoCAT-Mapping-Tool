@@ -1,33 +1,93 @@
 import os
 import tempfile
-import geojson
+import geopandas as gpd
 import numpy as np
+from geojson import Point, Polygon, Feature, FeatureCollection, loads, load
+from pyproj import Transformer
 from shapely import transform, contains_xy
 from shapely.geometry import mapping, shape
 from shapely.ops import unary_union
 from typing import List, Optional, Tuple, Union
-from geojson import Point, Polygon, Feature, FeatureCollection
-from pyproj import Transformer
 from .app import App
 from .model import *
 
 def handle_upload(request: dict, id: str) -> Optional[dict]:
     """
-    Reads in the uploaded GeoJSON file and returns it as a dictionary.
+    Reads in the uploaded file and returns it as a dictionary.
     """
 
-    uploaded_file = request.FILES[id]
-    with tempfile.TemporaryDirectory() as temp_dir:
-        temp_path = os.path.join(temp_dir, 'temp.geojson')
-        with open(temp_path, 'wb') as temp_file:
-            for chunk in uploaded_file.chunks():
-                temp_file.write(chunk)
-        try:
-            with open(temp_path, 'r') as f:
-                geojson_dict = geojson.load(f)
-            return geojson_dict
-        except:
-            return None
+    # Get the uploaded files from the request
+    uploaded_files = request.FILES[id]
+
+    # Check that there are files present
+    if len(uploaded_files) == 0:
+        raise FileNotFoundError("No uploaded files could be found")
+
+    # Get the names and extensions of each file
+    file_names = [os.path.splitext(file.name)[0] for file in uploaded_files]
+    file_exts = [os.path.splitext(file.name)[1].lower() for file in uploaded_files]
+
+    # Check that only one GeoJSON or one Shapefile (along with ancillaries) have been uploaded
+    if '.geojson' in file_exts:
+
+        # Check that there is only one GeoJSON
+        if len(file_names) > 1:
+            raise OSError("Please upload a single GeoJSON file")
+
+        # Create a temporary folder to write the file
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            
+            # Point to a temporary file path
+            tmp_path = os.path.join(tmp_dir, 'tmp.geojson')
+
+            # Create a temporary file    
+            with open(tmp_path, 'wb') as tmp_file:
+
+                # Break the uploaded file into chunks so as to not overload memory
+                for chunk in uploaded_files[0].chunks():
+                    tmp_file.write(chunk)
+
+            # Try to open the temporary file as a dictionary
+            try:
+                with open(tmp_path, 'r') as f:
+                    geojson_dict = load(f)
+                return geojson_dict
+            except:
+                return None
+
+    # Check that a shapefile and its ancillaries have been uploaded
+    elif '.shp' in file_exts and '.shx' in file_exts and '.dbf' in file_exts and '.prj' in file_exts:
+
+        # Check that all the names match
+        if len(list(set(file_names))) != 1 or len(file_names) != 4:
+            raise OSError("Please upload a single .shp file along with its ancillaries (.shx, .dbf and .prj) all with matching file names")
+
+        # Create a temporary folder to write the file
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            
+            # Loop through each uploaded file
+            for i, uploaded_file in enumerate(uploaded_files):
+
+                # Point to a temporary file path
+                tmp_path = os.path.join(tmp_dir, 'tmp' + file_exts[i].lower())
+
+                # Create a temporary file    
+                with open(tmp_path, 'wb') as tmp_file:
+
+                    # Break the uploaded file into chunks so as to not overload memory
+                    for chunk in uploaded_file.chunks():
+                        tmp_file.write(chunk)
+
+            # Try to open the temporary file as a dictionary
+            try:
+                shp_path = os.path.join(tmp_dir, 'tmp.shp')
+                geojson_dict = gpd.read_file(shp_path).to_json()
+                return geojson_dict
+            except:
+                return None
+
+    else:
+        raise OSError("Please upload a single GeoJSON file")
 
 def buffer_collection(collection: dict, buffer: int) -> dict:
     """
@@ -80,7 +140,7 @@ def calculate_extent(collection: dict) -> List[float]:
     """
 
     if isinstance(collection, str):
-        collection = geojson.loads(collection)
+        collection = loads(collection)
 
     geoms = [feature['geometry'] for feature in collection['features']]
 
@@ -131,7 +191,7 @@ def check_geom(geom: Union[str, dict], geom_type: Optional[str] = None) -> Tuple
 
     # Convert the GeoJSON representation of the geometry into a dictionary
     if isinstance(geom, str):
-        geom = geojson.loads(geom)
+        geom = loads(geom)
 
     # Check that there are geometries
     if 'geodesic' in geom.keys() and not geom.get('geodesic'):
@@ -214,7 +274,7 @@ def convert_polygons_to_points(geoms: FeatureCollection, scale: int, factor: int
     
     # Convert the GeoJSON representation of the geometry into a dictionary
     if isinstance(geoms, str):
-        geoms = geojson.loads(geoms)
+        geoms = loads(geoms)
 
     # Store the points
     points = []
