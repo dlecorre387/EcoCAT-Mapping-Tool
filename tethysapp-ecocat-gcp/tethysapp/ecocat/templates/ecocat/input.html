@@ -13,7 +13,7 @@
   {% gizmo level1_input %}
   {% gizmo level2_input %}
   <p><b>OR</b> Upload a GeoJSON:</p>
-  <input type="file" id="roi-file" name="roi-file" accept=".geojson" multiple="false" form="input-form" style="margin-left: 20px; width: 230px; padding-bottom: 1rem;">
+  <input type="file" id="roi-file" name="roi-file" accept=".geojson,.shp,.shx,.dbf,.prj" multiple="true" form="input-form" style="margin-left: 20px; width: 230px; padding-bottom: 1rem;">
   <p><b>(Optional)</b> Buffer the RoI [in km]:</p>
   {% gizmo buffer_input %}
 
