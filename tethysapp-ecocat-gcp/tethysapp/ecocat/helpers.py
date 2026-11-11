@@ -28,7 +28,7 @@ def handle_upload(request: dict, id: str) -> Optional[dict]:
         file_names = [os.path.splitext(file.name)[0] for file in uploaded_files]
         file_exts = [os.path.splitext(file.name)[1].lower() for file in uploaded_files]
     except:
-        raise ValueError(f"Could not read file names: {uploaded_files}")
+        raise ValueError(f"Could not read file names: {request.FILES}")
 
     # Check that only one GeoJSON or one Shapefile (along with ancillaries) have been uploaded
     if '.geojson' in file_exts:
