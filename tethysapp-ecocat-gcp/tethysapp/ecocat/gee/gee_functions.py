@@ -201,8 +201,8 @@ def classify_ecosystem(roi: dict, ecosystem: Optional[dict], background: Optiona
 
         # Split the samples into train and validation sets
         fold = ee.Number(fold)
-        train_samples = ecosystem_samples.filter(ee.Filter.neq('fold', fold)).merge(background.filter(ee.Filter.neq('fold', fold)))
-        val_samples = ecosystem_samples.filter(ee.Filter.eq('fold', fold)).merge(background.filter(ee.Filter.eq('fold', fold)))
+        train_samples = ecosystem_samples.filter(ee.Filter.neq('fold', fold)).merge(background_samples.filter(ee.Filter.neq('fold', fold)))
+        val_samples = ecosystem_samples.filter(ee.Filter.eq('fold', fold)).merge(background_samples.filter(ee.Filter.eq('fold', fold)))
 
         # Train the model
         trained_model = model.setOutputMode('PROBABILITY').train(features=train_samples, classProperty="class", inputProperties=predictors)
