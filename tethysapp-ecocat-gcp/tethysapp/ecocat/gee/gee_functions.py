@@ -63,7 +63,7 @@ def calculate_savi(image: ee.Image) -> ee.Image:
 
     return ee.Image.constant(1.5).multiply(top.divide(bottom))
 
-def classify_ecosystem(roi: dict, ecosystem: Optional[dict], background: Optional[dict], samples: Optional[dict], year: int, window: int, tile_scale: int, scale: int, model_name: str, seed: int = 42, factor: int = 5) -> Tuple[ee.Image, ee.ConfusionMatrix]:
+def classify_ecosystem(roi: dict, ecosystem: Optional[dict], background: Optional[dict], samples: Optional[dict], year: int, window: int, tile_scale: int, scale: int, model_name: str, seed: int = 42, factor: int = 5, n_folds: int = 5) -> Tuple[ee.Image, ee.ConfusionMatrix]:
     """
     Classify the ecosystem labelled by the user within their defined RoI.
     """
@@ -132,45 +132,13 @@ def classify_ecosystem(roi: dict, ecosystem: Optional[dict], background: Optiona
         ecosystem_samples = ecosystem_samples.map(lambda feat: feat.set('class', 1))
         background_samples = background_samples.map(lambda feat: feat.set('class', 0))
 
-        # Split the classes equally between training and validation sets
-        ecosystem_samples = ecosystem_samples.randomColumn(columnName='split', seed=seed)
-        background_samples = background_samples.randomColumn(columnName='split', seed=seed)
-
-        # Get the training samples
-        train_ecosystem_samples = ecosystem_samples.filter('split <= 0.8')
-        train_background_samples = background_samples.filter('split <= 0.8')
-        train_samples = train_ecosystem_samples.merge(train_background_samples)
-
-        # Get the validation samples
-        val_ecosystem_samples = ecosystem_samples.filter('split > 0.8')
-        val_background_samples = background_samples.filter('split > 0.8')
-        val_samples = val_ecosystem_samples.merge(val_background_samples)
-
         # If the user has also provided training samples, merge them
         if samples is not None:
 
             # Convert the samples to a GEE FeatureCollection and then separate by class
             samples = ee.FeatureCollection(samples)
-            user_ecosystem_samples = samples.filter(ee.Filter.eq('class', 1))
-            user_background_samples = samples.filter(ee.Filter.eq('class', 0))
-
-            # Split the classes equally between training and validation sets
-            user_ecosystem_samples = user_ecosystem_samples.randomColumn(columnName='split', seed=seed)
-            user_background_samples = user_background_samples.randomColumn(columnName='split', seed=seed)
-
-            # Get the training samples
-            user_train_ecosystem_samples = user_ecosystem_samples.filter('split <= 0.8')
-            user_train_background_samples = user_background_samples.filter('split <= 0.8')
-            user_train_samples = user_train_ecosystem_samples.merge(user_train_background_samples)
-    
-            # Get the validation samples
-            user_val_ecosystem_samples = user_ecosystem_samples.filter('split > 0.8')
-            user_val_background_samples = user_background_samples.filter('split > 0.8')
-            user_val_samples = user_val_ecosystem_samples.merge(user_val_background_samples)
-
-            # Merge with the existing training/validation samples
-            train_samples = train_samples.merge(user_train_samples)
-            val_samples = val_samples.merge(user_val_samples)
+            ecosystem_samples = ecosystem_samples.merge(samples.filter(ee.Filter.eq('class', 1)))
+            background_samples = background_samples.merge(samples.filter(ee.Filter.eq('class', 0)))
 
     # If training samples have been provided
     elif samples is not None:
@@ -180,29 +148,15 @@ def classify_ecosystem(roi: dict, ecosystem: Optional[dict], background: Optiona
         ecosystem_samples = samples.filter(ee.Filter.eq('class', 1))
         background_samples = samples.filter(ee.Filter.eq('class', 0))
 
-        # Split the classes equally between training and validation sets
-        ecosystem_samples = ecosystem_samples.randomColumn(columnName='split', seed=seed)
-        background_samples = background_samples.randomColumn(columnName='split', seed=seed)
-
-        # Get the training samples
-        train_ecosystem_samples = ecosystem_samples.filter('split <= 0.8')
-        train_background_samples = background_samples.filter('split <= 0.8')
-        train_samples = train_ecosystem_samples.merge(train_background_samples)
-
-        # Get the validation samples
-        user_val_ecosystem_samples = ecosystem_samples.filter('split > 0.8')
-        user_val_background_samples = background_samples.filter('split > 0.8')
-        val_samples = val_ecosystem_samples.merge(val_background_samples)
-
     else:
         raise ValueError(f"Neither ecosystem/background labels, or sampled pixel values, have been provided for {year}")
-    
+
+    # Assign a validation fold to the samples, stratifying by class
+    ecosystem_samples = ecosystem_samples.randomColumn(seed=seed).map(lambda feat: feat.set('fold', ee.Number(feat.get('random')).multiply(n_folds).floor()))
+    background_samples = background_samples.randomColumn(seed=seed).map(lambda feat: feat.set('fold', ee.Number(feat.get('random')).multiply(n_folds).floor()))
+
     # Get the predictors from the training data
     predictors = training_data.bandNames()
-
-    # Remove all null samples
-    train_samples = train_samples.select(predictors.add('class')).filter(ee.Filter.notNull(predictors.add('class')))
-    val_samples = val_samples.select(predictors.add('class')).filter(ee.Filter.notNull(predictors.add('class')))
 
     # Define the parameters for a random forest classifier
     if model_name == 'RF':
@@ -240,37 +194,53 @@ def classify_ecosystem(roi: dict, ecosystem: Optional[dict], background: Optiona
     else:
         raise NotImplementedError("Only random forest ('RF'), k-NN ('kNN') and support vector machine ('SVM') classifiers are implemented.")
 
-    # Train the model
-    trained_model = model.setOutputMode('PROBABILITY').train(features=train_samples, classProperty="class", inputProperties=predictors)
+    # Loop over all cross-validation folds
+    all_probabilies = []
+    all_metrics = []
+    for fold in range(n_folds):
 
-    # Get information on the trained model
-    model_info = trained_model.explain()
+        # Split the samples into train and validation sets
+        fold = ee.Number(fold)
+        train_samples = ecosystem_samples.filter(ee.Filter.neq('fold', fold)).merge(background.filter(ee.Filter.neq('fold', fold)))
+        val_samples = ecosystem_samples.filter(ee.Filter.eq('fold', fold)).merge(background.filter(ee.Filter.eq('fold', fold)))
 
-    # Classify the model on the entire RoI (in probability mode)
-    probabilities = training_data.classify(trained_model)
+        # Train the model
+        trained_model = model.setOutputMode('PROBABILITY').train(features=train_samples, classProperty="class", inputProperties=predictors)
 
-    # Reverse the probabilities if using SVM as the model
-    if model_name == 'SVM':
-        probabilities = ee.Image(1).subtract(probabilities)
+        # Classify the model on the entire RoI (in probability mode)
+        probabilities = training_data.classify(trained_model)
 
-    # Get the model probabilities for just the training and validation samples
-    train_probs = train_samples.classify(trained_model)
-    val_probs = val_samples.classify(trained_model)
+        # Reverse the probabilities if using SVM as the model
+        if model_name == 'SVM':
+            probabilities = ee.Image(1).subtract(probabilities)
 
-    # Threshold the probability to get a binary classification
-    def get_class(feat):
-        feat = ee.Feature(feat)
-        return feat.set('classification', ee.Number(feat.get('classification')).gte(0.5).toInt())
+        # Get the classification of each validation sample
+        val_probs = val_samples.classify(trained_model)
+        val_preds = val_probs.map(lambda feat: feat.set('classification', ee.Number(feat.get('classification')).gte(0.5).toInt()))
+        
+        # Get the confusion matrix for the validation samples
+        val_matrix = val_preds.errorMatrix('class', 'classification')
 
-    # Get the classification of each training and validation sample
-    train_preds = train_probs.map(get_class)
-    val_preds = val_probs.map(get_class)
+        # Collate the validation metrics
+        metrics = ee.Feature(None, {
+            'fold': fold,
+            'accuracy': val_matrix.accuracy(),
+            'precision': val_matrix.consumersAccuracy().get([0, 1]),
+            'recall': val_matrix.producersAccuracy().get([1, 0]),
+            'f1_score': val_matrix.fscore().get([1])
+        })
+
+        # Store the result for this fold
+        all_probabilies.append(probabilities)
+        all_metrics.append(metrics)
+
+    # Get the mean probability of each pixel belonging to ecosystem
+    mean_probabilities = ee.ImageCollection(all_probabilies).mean()
+
+    # Convert the list of features to a FeatureCollection
+    all_metrics = ee.FeatureCollection(all_metrics)
     
-    # Get the confusion matrix for the training and validation samples
-    train_matrix = train_preds.errorMatrix('class', 'classification')
-    val_matrix = val_preds.errorMatrix('class', 'classification')
-    
-    return probabilities, model_info, train_matrix, val_matrix
+    return mean_probabilities, all_metrics
 
 def cluster_ecosystem(roi: dict, ecosystem: Optional[dict], background: Optional[dict], samples: Optional[dict], year: int, window: int, tile_scale: int, scale: int, model_name: str, seed: int = 42, factor: int = 5) -> Tuple[ee.Image, ee.ConfusionMatrix]:
     """

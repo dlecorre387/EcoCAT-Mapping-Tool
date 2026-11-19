@@ -616,7 +616,7 @@ def get_classification_url(user_workspace: str, year: str, tile_scale: int) -> T
 
         # Classify the ecosystem
         if method == 'pixels':
-            probabilities, _, _, _ = classify_ecosystem(roi=roi, 
+            mean_probabilities, _ = classify_ecosystem(roi=roi, 
                                                     ecosystem=ecosystem, 
                                                     background=background,
                                                     samples=samples,
@@ -626,7 +626,7 @@ def get_classification_url(user_workspace: str, year: str, tile_scale: int) -> T
                                                     scale=scale,
                                                     model_name=model_name)
         elif method == 'clusters':
-            probabilities, _, _, _ = cluster_ecosystem(roi=roi, 
+            mean_probabilities, _ = cluster_ecosystem(roi=roi, 
                                                     ecosystem_geoms=ecosystem, 
                                                     background_geoms=background,
                                                     samples=samples,
@@ -638,11 +638,11 @@ def get_classification_url(user_workspace: str, year: str, tile_scale: int) -> T
         else:
             raise NotImplementedError("Chosen classification method not supported")
         
-        # Threshold the probabilities to get the classification
-        classification = probabilities.gte(0.5).toUint8()
+        # Threshold the mean probabilities to get the classification
+        classification = mean_probabilities.gte(0.5).toUint8()
 
         # Get the tile urls for the classification and probabilities
-        prob_url = image_to_map_id(probabilities, vis_params={'min': 0, 'max': 1, 'palette': ['#d7191c', '#fdae61', '#ffffc0', '#a6d96a', '#1a9641']})
+        prob_url = image_to_map_id(mean_probabilities, vis_params={'min': 0, 'max': 1, 'palette': ['#d7191c', '#fdae61', '#ffffc0', '#a6d96a', '#1a9641']})
         class_url = image_to_map_id(classification.selfMask(), vis_params={'min': 0, 'max': 1, 'palette': ['#FDBB13']})
 
         # Persist the classification url to the user input
@@ -689,84 +689,48 @@ def generate_metrics(user_workspace: str, year: str, tile_scale: int) -> Tuple[s
 
     # Classify the ecosystem
     if method == 'pixels':
-        _, model_info, train_matrix, val_matrix = classify_ecosystem(roi=roi, 
-                                                    ecosystem=ecosystem, 
-                                                    background=background,
-                                                    samples=samples,
-                                                    year=year,
-                                                    window=window,
-                                                    tile_scale=tile_scale,
-                                                    scale=scale,
-                                                    model_name=model_name)
+        _, all_metrics = classify_ecosystem(roi=roi, 
+                                            ecosystem=ecosystem, 
+                                            background=background,
+                                            samples=samples,
+                                            year=year,
+                                            window=window,
+                                            tile_scale=tile_scale,
+                                            scale=scale,
+                                            model_name=model_name)
     elif method == 'clusters':
-        _, model_info, train_matrix, val_matrix = cluster_ecosystem(roi=roi, 
-                                                    ecosystem=ecosystem, 
-                                                    background=background,
-                                                    samples=samples,
-                                                    year=year,
-                                                    window=window,
-                                                    tile_scale=tile_scale,
-                                                    scale=scale,
-                                                    model_name=model_name)
+        _, all_metrics = cluster_ecosystem(roi=roi, 
+                                        ecosystem=ecosystem, 
+                                        background=background,
+                                        samples=samples,
+                                        year=year,
+                                        window=window,
+                                        tile_scale=tile_scale,
+                                        scale=scale,
+                                        model_name=model_name)
     else:
         raise NotImplementedError("Chosen classification method not supported")
-    
-    # Retrieve the importances of each variable
-    importance_dict = ee.Dictionary(model_info.get('importance'))
-    important_vars = importance_dict.keys().sort(importance_dict.values()).reverse()
-    max_importances = ee.List(important_vars).slice(0, 3).getInfo()
-
-    # Convert the band ID to an understandable name (except for AlphaEarth bands)
-    for v, var in enumerate(max_importances):
-        if var == 'R':
-            max_importances[v] = 'Red band'
-        elif var == 'G':
-            max_importances[v] = 'Green band'
-        elif var == 'B':
-            max_importances[v] = 'Blue band'
-        elif var == 'NDVI_med':
-            max_importances[v] = "NDVI (Vegetation) - median"
-        elif var == 'NDVI_std':
-            max_importances[v] = "NDVI (Vegetation) - st. dev."
-        elif var == 'EVI_med':
-            max_importances[v] = "EVI (Enhanced Veg.) - median"
-        elif var == 'EVI_std':
-            max_importances[v] = "EVI (Enhanced Veg.) - st. dev."
-        elif var == 'SAVI_med':
-            max_importances[v] = "SAVI (Soil-adj. Veg.) - median"
-        elif var == 'SAVI_std':
-            max_importances[v] = "SAVI (Soil-adj. Veg.) - st. dev."
-        elif var == 'NDMI_med':
-            max_importances[v] = "NDMI (Moisture) - median"
-        elif var == 'NDMI_std':
-            max_importances[v] = "NDMI (Moisture) - st. dev."
-        elif var == 'NDWI':
-            max_importances[v] = "NDWI (Water) - median"
-        elif var == 'NDBI':
-            max_importances[v] = "NDWI (Urban) - median"
-        elif var == 'elevation':
-            max_importances[v] = "Elevation"
-        elif var == 'slope':
-            max_importances[v] = "Slope"
-    max_importances = ', '.join(max_importances)
-    
+        
     # Calculate the precision (consumer's accuracy)
-    train_precision = train_matrix.consumersAccuracy().get([0, 1]).getInfo()
-    val_precision = val_matrix.consumersAccuracy().get([0, 1]).getInfo()
+    mean_P = 100 * all_metrics.aggregate_array('precision').reduce(reducer=ee.Reducer.mean(), axis=[0]).getInfo()
+    stdev_P = 100 * all_metrics.aggregate_array('precision').reduce(reducer=ee.Reducer.stdDev(), axis=[0]).getInfo()
 
     # Calculate the recall (producer's accuracy)
-    train_recall = train_matrix.producersAccuracy().get([1, 0]).getInfo()
-    val_recall = val_matrix.producersAccuracy().get([1, 0]).getInfo()
+    mean_R = 100 * all_metrics.aggregate_array('precision').reduce(reducer=ee.Reducer.mean(), axis=[0]).getInfo()
+    stdev_R = 100 * all_metrics.aggregate_array('precision').reduce(reducer=ee.Reducer.stdDev(), axis=[0]).getInfo()
 
     # Calculate the F1-score (harmonic mean between precision and recall)
-    train_f1_score = train_matrix.fscore().get([1]).getInfo()
-    val_f1_score = val_matrix.fscore().get([1]).getInfo()
+    mean_F1 = 100 * all_metrics.aggregate_array('precision').reduce(reducer=ee.Reducer.mean(), axis=[0]).getInfo()
+    stdev_F1 = 100 * all_metrics.aggregate_array('precision').reduce(reducer=ee.Reducer.stdDev(), axis=[0]).getInfo()
 
     # Calculate the overall accuracy (TP + TN / TP + TN + FP + FN)
-    train_accuracy = train_matrix.accuracy().getInfo()
-    val_accuracy = val_matrix.accuracy().getInfo()
+    mean_Acc = 100 * all_metrics.aggregate_array('precision').reduce(reducer=ee.Reducer.mean(), axis=[0]).getInfo()
+    stdev_Acc = 100 * all_metrics.aggregate_array('precision').reduce(reducer=ee.Reducer.stdDev(), axis=[0]).getInfo()
 
-    return max_importances, train_precision, train_recall, train_f1_score, train_accuracy, val_precision, val_recall, val_f1_score, val_accuracy
+    # Collate the result into a single string
+    metrics_str = f"Precision: {mean_P:0.0f}+/-{stdev_P:0.0f}%, Recall: {mean_R:0.0f}+/-{stdev_R:0.0f}%, F1-score: {mean_F1:0.0f}+/-{stdev_F1:0.0f}%, Accuracy: {mean_Acc:0.0f}+/-{stdev_Acc:0.0f}%"
+
+    return metrics_str
 
 def export_classification(user_workspace: str, user_name: str, year: str, tile_scale: int) -> Tuple[str, str, dict]:
     """

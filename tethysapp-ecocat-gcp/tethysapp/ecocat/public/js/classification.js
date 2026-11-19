@@ -251,18 +251,10 @@ var MAPPING = (function() {
             if (response.success) {
 
                 // Log the response to the console
-                console.log(response.vars);
-                console.log(response.train_P);
-                console.log(response.train_R);
-                console.log(response.train_F1);
-                console.log(response.train_Acc);
-                console.log(response.val_P);
-                console.log(response.val_R);
-                console.log(response.val_F1);
-                console.log(response.val_Acc);
+                console.log(response.metrics);
 
                 // Show the metrics on screen
-                alert(`Most important variables: ${response.vars}\n\nPerformance on Training Samples:\nPrecision: ${response.train_P}\nRecall: ${response.train_R}\nF1: ${response.train_F1}\nAccuracy: ${response.train_Acc}\n\nPerformance on Validation Samples:\nPrecision: ${response.val_P}\nRecall: ${response.val_R}\nF1: ${response.val_F1}\nAccuracy: ${response.val_Acc}`)
+                alert(response.metrics)
             
             // Otherwise, show an error message
             } else {

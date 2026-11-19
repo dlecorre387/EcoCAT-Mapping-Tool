@@ -1748,19 +1748,11 @@ def get_metrics(request, user_workspace):
             raise ValueError("Please select a year from the drop-down menu to display the correct image for that assessment period")
         
         # Get the tile URL
-        max_importances, train_precision, train_recall, train_f1_score, train_accuracy, val_precision, val_recall, val_f1_score, val_accuracy = generate_metrics(user_workspace=user_workspace, year=year, tile_scale=4)
+        metrics_str = generate_metrics(user_workspace=user_workspace, year=year, tile_scale=4)
 
         # Update the response data
         response_data.update({'success': True, 
-                            'vars': max_importances, 
-                            'train_P': train_precision, 
-                            'train_R': train_recall, 
-                            'train_F1': train_f1_score, 
-                            'train_Acc': train_accuracy, 
-                            'val_P': val_precision, 
-                            'val_R': val_recall, 
-                            'val_F1': val_f1_score, 
-                            'val_Acc': val_accuracy})
+                            'metrics': metrics_str})
 
     # Add an error message to the response data if an exception occurs
     except Exception as e:

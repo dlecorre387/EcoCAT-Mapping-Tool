@@ -32,11 +32,11 @@ def handle_upload(request: dict, id: str) -> Optional[dict]:
     file_exts = [os.path.splitext(file.name)[1].lower() for file in uploaded_files]
 
     # Check that only one GeoJSON or one Shapefile (along with ancillaries) have been uploaded
-    if '.geojson' in file_exts:
+    if '.geojson' in file_exts and not ('.shp' in file_exts or '.shx' in file_exts or '.dbf' in file_exts or '.prj' in file_exts):
 
         # Check that there is only one GeoJSON
         if len(file_names) > 1:
-            raise OSError("Please upload a single GeoJSON file")
+            raise OSError("Please upload a single .geojson file")
 
         # Create a temporary folder to write the file
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -60,11 +60,11 @@ def handle_upload(request: dict, id: str) -> Optional[dict]:
                 return None
 
     # Check that a shapefile and its ancillaries have been uploaded
-    elif '.shp' in file_exts and '.shx' in file_exts and '.dbf' in file_exts and '.prj' in file_exts:
+    elif ('.shp' in file_exts and '.shx' in file_exts and '.dbf' in file_exts and '.prj' in file_exts) and '.geojson' not in file_exts:
 
         # Check that all the names match
         if len(list(set(file_names))) != 1 or len(file_names) != 4:
-            raise OSError("Please upload a single .shp file along with its ancillaries (.shx, .dbf and .prj) all with matching file names")
+            raise OSError("Please upload a single set of shapefiles (.dbf, .prj, .shp and .shx) all with matching file names")
 
         # Create a temporary folder to write the file
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -91,7 +91,7 @@ def handle_upload(request: dict, id: str) -> Optional[dict]:
                 return None
 
     else:
-        raise OSError("Please upload a single GeoJSON file")
+        raise OSError("Please upload a single .geojson file, or a single set of shapefiles (.dbf, .prj, .shp and .shx) all with matching file names")
 
 def buffer_collection(collection: dict, buffer: int) -> dict:
     """
