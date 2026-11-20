@@ -1483,6 +1483,14 @@ def occurrences(request, user_workspace):
 
     return App.render(request, 'occurrences.html', context)
 
+@controller(name='settings')
+def settings(request):
+    """
+    Controller for the settings page.
+    """
+
+    return App.render(request, 'settings.html')
+
 @controller(name='help')
 def help(request):
     """

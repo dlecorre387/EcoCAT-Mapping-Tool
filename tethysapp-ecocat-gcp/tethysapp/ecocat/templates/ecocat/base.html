@@ -40,19 +40,23 @@
   {% url tethys_app|url:'labelling' as labelling_url %}
   {% url tethys_app|url:'classification' as classification_url %}
   {% url tethys_app|url:'help' as help_url %}
+  {% url tethys_app|url:'settings' as settings_url %}
   <div class="header-button glyphicon-button">
-    <a style="font-size: 1.0rem;" href="{{ home_url }}" title="Return to the home page"><i class="bi bi-house-door-fill"></i> Home</a>
+    <a style="font-size: 1.0rem;" href="{{ home_url }}" title="Return to the home page"><i class="bi bi-house-door"></i> Home</a>
   </div>
   <div class="header-button glyphicon-button">
-    <a style="font-size: 1.0rem;" href="{{ input_url }}" title="Tell EcoCAT where your ecosystem is in the world and when it should be mapped"><i class="bi bi-cursor-fill"></i> User Input</a>
+    <a style="font-size: 1.0rem;" href="{{ input_url }}" title="Specify where your ecosystem is in the world and when it should be mapped"><i class="bi bi-1-circle"></i> User Input</a>
   </div>
   <div class="header-button glyphicon-button">
-    <a style="font-size: 1.0rem;" href="{{ labelling_url }}" title="Create labels for your ecosystem and its surroundings to enable an accurate mapping"><i class="bi bi-geo-fill"></i> Labelling</a>
+    <a style="font-size: 1.0rem;" href="{{ labelling_url }}" title="Label your ecosystem and its surroundings within satellite data"><i class="bi bi-2-circle"></i> Labelling</a>
   </div>
   <div class="header-button glyphicon-button">
-    <a style="font-size: 1.0rem;" href="{{ classification_url }}" title="Map your ecosystem through time using the EcoCAT Mapping Tool"><i class="bi bi-map-fill"></i> Mapping</a>
+    <a style="font-size: 1.0rem;" href="{{ classification_url }}" title="Map your ecosystem through time by training machine learning models"><i class="bi bi-3-circle"></i> Mapping</a>
   </div>
   <div class="header-button glyphicon-button">
-    <a style="font-size: 1.0rem;" href="{{ help_url }}" title="Find useful information on terminology, datasets, methods or commonly asked questions"><i class="bi bi-question-circle-fill"></i> Help & FAQs</a>
+    <a style="font-size: 1.0rem;" href="{{ help_url }}" title="Find useful information on how the tool works"><i class="bi bi-question-circle"></i> Help</a>
+  </div>
+  <div class="header-button glyphicon-button">
+    <a style="font-size: 1.0rem;" href="{{ settings_url }}" title="Configure the tool to your needs by changing its settings"><i class="bi bi-sliders"></i> Settings</a>
   </div>
 {% endblock %}
