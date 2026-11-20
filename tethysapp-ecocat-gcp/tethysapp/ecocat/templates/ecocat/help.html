@@ -6,68 +6,68 @@
     <li class="nav-item"><a class="nav-link{% if request.path == input_url %} active{% endif %}" href="#help" style="font-size: 1rem;"><b>Help</b></a></li>
     <li class="nav-item"><a class="nav-link{% if request.path == input_url %} active{% endif %}" href="#workflow" style="font-size: 1rem;">User Workflow</a></li>
     <li class="nav-item"><a class="nav-link{% if request.path == input_url %} active{% endif %}" href="#abbrev" style="font-size: 1rem;">Nomenclature</a></li>
-    <li class="nav-item"><a class="nav-link{% if request.path == labelling_url %} active{% endif %}" href="#faqs" style="font-size: 1rem;"><b>FAQs</b></a></li>
+    <li class="nav-item"><a class="nav-link{% if request.path == labelling_url %} active{% endif %}" href="#faqs" style="font-size: 1rem;">FAQs</a></li>
 {% endblock %}
 
 {% block app_content %}
 
-    <h2 id="help"><i class="bi bi-question-circle-fill"></i> Help & FAQs</h2>
+    <br><h2 id="help"><i class="bi bi-question-circle-fill"></i> Help & FAQs</h2>
 
     <br><h5 id="workflow"><i class="bi bi-person-workspace"></i> User Workflow</h5>
     
-        <br><ul>
-            <li>Step 1: User Input</li>
+        <ul>
+            <li><b>Step 1: User Input</b></li>
         </ul>
         
         <p>In this page, users provide the EcoCAT Mapping Tool with knowledge of where the ecosystem is geographically, as well as when it should be mapped.</p>
         
         <ol>
-            <li><p><b>Define a Region of Interest (RoI):</b></p></li>
+            <li><p>Define a Region of Interest (RoI):</p></li>
                 <p>In order to perform a risk assessment, we need to know where the ecosystem is geographically by providing a RoI that encapsulates it. This can be hand-drawn on the map, perhaps as a box or polygon around all known units. It can also be uploaded to the tool (as a GeoJSON in EPSG:4326) if you already have a boundary that you would like to use as the RoI. A RoI can also be selected from a series of catalogues (such as country boundaries or RESOLVE Ecoregions) hosted on Google Earth Engine. The drawn, uploaded, or selected RoI can then be buffered (in kilometres) if required.</p>
-            <li><p><b>Select your ecosystem assessment year(s):</b></p></li>
+            <li><p>Select your ecosystem assessment year(s):</p></li>
                 <p>To determine the change in the ecosystem's extent over time, we also need to know which years it should be assessed within. If you not performing a risk assessment and, therefore, may only require a single map, then a specific year can be chosen. If you are performing a risk assessment, then multiple years can be chosen from a drop-down, or assessment years can be generated automatically by using a regular assessment interval (e.g. every 10 years) starting from 2025.</p>
-            <li><p><b>Choose a map scale:</b></p></li>
+            <li><p>Choose a map scale:</p></li>
                 <p>Depending on the size of your RoI, you may wish to tailor your map scale. The map scale is the resolution that the training data is reprojected to, and thus, the resolution of your ecosystem map. For example, a map scale of 100 m/px when mapping boreal forests across the entirety of Canada will result in too much data for the Mapping Tool to be able to process.</p>
         </ol>
 
-        <br><ul>
-            <li>Step 2: Labelling</li>
+        <ul>
+            <li><b>Step 2: Labelling</b></li>
         </ul>
 
         <p>In this page, users employ their expert knowledge of their chosen ecosystem to label it through time using temporally-explicit satellite data.</p>
 
         <ol>
-            <li><p><b>Pick one of your selected assessment years:</b></p></li>
+            <li><p>Pick one of your selected assessment years:</p></li>
                 <p>Choose one of the assessment years that you selected in the 'User Input' page to begin the process of labelling. These labels will be used to build a dataset of pixel values (such as colour, vegetation health, topography) to train a machine learning model to map the ecosystem within the RoI.</p>
-            <li><p><b>Display some satellite data:</b></p></li>
+            <li><p>Display some satellite data:</p></li>
                 <p>To help with the labelling process, it will be necessary to load some satellite data (e.g. imagery, spectral indices, topography) that are correct as of this chosen assessment period. For example, if we are labelling 1985, we need to make sure that any pixels labelled as ecosystem were genuinely taken as close to 1985 as possible.</p>
-            <li><p><b>Draw or upload your ecosystem and non-ecosystem background labels:</b></p></li>
+            <li><p>Draw or upload your ecosystem and non-ecosystem background labels:</p></li>
                 <p>Pixels can be labelled as ecosystem or non-ecosystem background (such as urban areas, water bodies, other vegetation etc.) using points (i.e. individual pixels) or as polygons (i.e. several pixels at a time) by using the drawing controls in the top left of the map. Otherwise, you can upload ecosystem or background labels separately as GeoJSONs (in EPSG:4326).</p>
-            <li><p><b>Repeat for all assessment years:</b></p></li>
+            <li><p>Repeat for all assessment years:</p></li>
                 <p>This labelling process needs to be repeated for all of your chosen assessment years, as a separate machine learning model will be trained for each year.</p>
         </ol>
 
-        <br><ul>
-            <li>Step 3: Mapping</li>
+        <ul>
+            <li><b>Step 3: Mapping</b></li>
         </ul>
 
         <p>In this page, machine learning models are trained on the users labels from the previous page for each of the selected assessment years. These models are then used to produce a time series of ecosystem maps that users can visualise, validate and iteratively improve by producing more labels.</p>
 
         <ol>
-            <li><p><b>Pick one of your assessment years:</b></p></li>
+            <li><p>Pick one of your assessment years:</p></li>
                 <p>Again, start by picking one of your assessment years to begin the process of mapping your ecosystem.</p>
-            <li><p><b>Display some satellite data:</b></p></li>
+            <li><p>Display some satellite data:</p></li>
                 <p>Similar to the 'Labelling' page, satellite data correct as of the chosen assessment year can be displayed on the map to help validate your ecosystem map and to see if and where more ecosystem labels may be required.</p>
-            <li><p><b>Classify the ecosystem:</b></p></li>
+            <li><p>Classify the ecosystem:</p></li>
                 <p>By clicking the 'Classify Ecosystem' button, you will start training a machine learning model (default is a Random Forest) on the labels that you made for this assessment year. This trained model will then be used to classify all pixels within your RoI as either ecosystem or non-ecosystem background. The resulting ecosystem map will be displayed on-screen, along with the ecosystem probabilities (i.e. the model's confidence from 0-100% that a given pixel is ecosystem).</p>
-            <li><p><b>Export your ecosystem map:</b></p></li>
+            <li><p>Export your ecosystem map:</p></li>
                 <p>Once you are happy with the result of your ecosystem map for this assessment year, you can export it from the Google Earth Enging (GEE) servers to Google Cloud Storage (if using the deployed version) or your personal Google Drive (if using the locally installed version). NOTE: To preserve usage allocations within GEE, exporting is currently limited to select users in the deployed version of the EcoCAT Mapping Tool.</p>
-            <li><p><b>Repeat for all assessment years:</b></p></li>
+            <li><p>Repeat for all assessment years:</p></li>
                 <p>Whilst you are waiting for your ecosystem map to finish exporting, you can repeat this process for your other assessment years.</p>
             </ol>
 
-        <br><ul>
-            <li>Optional Step: Perform Ecosystem Risk Assessment Using EcoCAT RLE Assessment Tool</li>
+        <ul>
+            <li><b>Optional Step: Perform Ecosystem Risk Assessment Using EcoCAT RLE Assessment Tool</b></li>
         </ul>
 
     <br><h5 id="abbrev"><i class="bi bi-sort-alpha-down"></i> Nomenclature</h4>
