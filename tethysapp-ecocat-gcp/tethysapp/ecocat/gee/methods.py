@@ -712,20 +712,20 @@ def generate_metrics(user_workspace: str, year: str, tile_scale: int) -> Tuple[s
         raise NotImplementedError("Chosen classification method not supported")
         
     # Calculate the precision (consumer's accuracy)
-    mean_P = 100 * all_metrics.aggregate_array('precision').reduce(reducer=ee.Reducer.mean(), axis=[0]).getInfo()
-    stdev_P = 100 * all_metrics.aggregate_array('precision').reduce(reducer=ee.Reducer.stdDev(), axis=[0]).getInfo()
+    mean_P = 100 * all_metrics.aggregate_array('precision').reduce(reducer=ee.Reducer.mean(), axes=[0]).getInfo()
+    stdev_P = 100 * all_metrics.aggregate_array('precision').reduce(reducer=ee.Reducer.stdDev(), axes=[0]).getInfo()
 
     # Calculate the recall (producer's accuracy)
-    mean_R = 100 * all_metrics.aggregate_array('precision').reduce(reducer=ee.Reducer.mean(), axis=[0]).getInfo()
-    stdev_R = 100 * all_metrics.aggregate_array('precision').reduce(reducer=ee.Reducer.stdDev(), axis=[0]).getInfo()
+    mean_R = 100 * all_metrics.aggregate_array('precision').reduce(reducer=ee.Reducer.mean(), axes=[0]).getInfo()
+    stdev_R = 100 * all_metrics.aggregate_array('precision').reduce(reducer=ee.Reducer.stdDev(), axes=[0]).getInfo()
 
     # Calculate the F1-score (harmonic mean between precision and recall)
-    mean_F1 = 100 * all_metrics.aggregate_array('precision').reduce(reducer=ee.Reducer.mean(), axis=[0]).getInfo()
-    stdev_F1 = 100 * all_metrics.aggregate_array('precision').reduce(reducer=ee.Reducer.stdDev(), axis=[0]).getInfo()
+    mean_F1 = 100 * all_metrics.aggregate_array('precision').reduce(reducer=ee.Reducer.mean(), axes=[0]).getInfo()
+    stdev_F1 = 100 * all_metrics.aggregate_array('precision').reduce(reducer=ee.Reducer.stdDev(), axes=[0]).getInfo()
 
     # Calculate the overall accuracy (TP + TN / TP + TN + FP + FN)
-    mean_Acc = 100 * all_metrics.aggregate_array('precision').reduce(reducer=ee.Reducer.mean(), axis=[0]).getInfo()
-    stdev_Acc = 100 * all_metrics.aggregate_array('precision').reduce(reducer=ee.Reducer.stdDev(), axis=[0]).getInfo()
+    mean_Acc = 100 * all_metrics.aggregate_array('precision').reduce(reducer=ee.Reducer.mean(), axes=[0]).getInfo()
+    stdev_Acc = 100 * all_metrics.aggregate_array('precision').reduce(reducer=ee.Reducer.stdDev(), axes=[0]).getInfo()
 
     # Collate the result into a single string
     metrics_str = f"Precision: {mean_P:0.0f}+/-{stdev_P:0.0f}%, Recall: {mean_R:0.0f}+/-{stdev_R:0.0f}%, F1-score: {mean_F1:0.0f}+/-{stdev_F1:0.0f}%, Accuracy: {mean_Acc:0.0f}+/-{stdev_Acc:0.0f}%"
