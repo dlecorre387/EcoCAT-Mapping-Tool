@@ -1,0 +1,47 @@
+{% extends tethys_app.package|add:"/base.html" %}
+{% load static tethys %}
+
+{% block app_navigation_items %}
+    <li class="nav-item title"><h2><i class="bi bi-list"></i> Navigation</h2></li>
+    <li class="nav-item"><a class="nav-link{% if request.path == input_url %} active{% endif %}" href="#settings" style="font-size: 1rem;"><b>Settings</b></a></li>
+    <li class="nav-item"><a class="nav-link{% if request.path == input_url %} active{% endif %}" href="#data" style="font-size: 1rem;">Data Format and Display</a></li>
+    <li class="nav-item"><a class="nav-link{% if request.path == input_url %} active{% endif %}" href="#mapping" style="font-size: 1rem;">Classification Parameters</a></li>
+{% endblock %}
+
+{% block app_content %}
+
+    <h2 id="settings">Settings</h2>
+
+    <br><h3 id="data">Data Format and Display</h3>
+
+    <h5>Output File Format</h5>
+    
+    
+
+    <h5>Input Coordinate Reference System (CRS)</h5>
+
+
+
+    <br><h3 id="mapping">Classification Parameters</h3>
+
+    <h5>Map Scale</h5>
+
+
+
+    <h5>Machine Learning Model Architecture</h5>
+
+
+
+    <h5>Simple Non-Iterative Clustering (SNIC) - Beta</h5>
+
+
+
+    <h5>Spatial Distancing Factor</h5>
+
+
+
+    <h5>Reduction Operation Factor</h5>
+   
+    
+
+{% endblock %}
