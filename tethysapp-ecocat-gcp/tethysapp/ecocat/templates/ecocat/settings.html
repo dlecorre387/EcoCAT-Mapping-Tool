@@ -10,38 +10,56 @@
 
 {% block app_content %}
 
+    <form id="settings-form" method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+
     <h2 id="settings"><i class="bi bi-gear-fill"></i> Advanced Settings</h2>
 
     <br><h5 id="data"><i class="bi bi-database-fill"></i> Data Format and Display</h5>
 
     <ul>
-        <li>Output File Format</li>
+        <li>Input/Output Coordinate Reference System (CRS)</li>
     </ul>
+    {% gizmo incrs_input %}
+    {% gizmo outcrs_input %}
 
     <ul>
-        <li>Input Coordinate Reference System (CRS)</li>
+        <li>Output File Format</li>
     </ul>
+    {% gizmo outformat_input %}
 
     <br><h5 id="mapping"><i class="bi bi-sliders2"></i> Classification Parameters</h5>
 
     <ul>
         <li>Map Scale</li>
     </ul>
+    {% gizmo scale_input %}
 
     <ul>
         <li>Machine Learning Model Architecture</li>
     </ul>
+    {% gizmo model_input %}
 
     <ul>
-        <li>Simple Non-Iterative Clustering (SNIC) - Beta</li>
+        <li>Classification Approach - Beta</li>
     </ul>
+    {% gizmo method_input %}
 
     <ul>
         <li>Spatial Distancing Factor</li>
     </ul>
+    {% gizmo spacing_input %}
    
     <ul>
         <li>Reduction Operation Factor</li>
     </ul>
+    {% gizmo reduce_input %}
 
+    </form>
+
+{% endblock %}
+
+{% block app_actions %}
+  {% gizmo restore_button %}
+  {% gizmo save_button %}
 {% endblock %}

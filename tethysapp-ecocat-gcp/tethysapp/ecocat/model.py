@@ -17,6 +17,8 @@ def add_user_input(db_directory: str, user_dict: dict, input_name: str, year: Op
     # Define the file name
     if input_name == 'input':
         file_name = 'user_input.json'
+    elif input_name == 'settings':
+        file_name = 'custom_settings.json'
     elif input_name == 'roi':
         file_name = 'region_of_interest.geojson'
     elif input_name == 'ecosystem':
@@ -26,7 +28,7 @@ def add_user_input(db_directory: str, user_dict: dict, input_name: str, year: Op
     elif input_name == 'samples':
             file_name = f'samples_{year}.geojson'
     else:
-        raise ValueError("Unsupported user input type. Please use one of 'input', 'roi', 'ecosystem' or 'background'")
+        raise ValueError("Unsupported user input type. Please use one of 'input', 'settings', 'roi', 'ecosystem' or 'background'")
 
     # Define the file path
     file_path = os.path.join(db_directory, file_name)
@@ -47,6 +49,8 @@ def get_user_input(db_directory: str, input_name: str, year: Optional[Union[int,
     # Define the file name
     if input_name == 'input':
         file_name = 'user_input.json'
+    elif input_name == 'settings':
+        file_name = 'custom_settings.json'
     elif input_name == 'roi':
         file_name = 'region_of_interest.geojson'
     elif input_name == 'ecosystem':
@@ -56,7 +60,7 @@ def get_user_input(db_directory: str, input_name: str, year: Optional[Union[int,
     elif input_name == 'samples':
         file_name = f'samples_{year}.geojson'
     else:
-        raise ValueError("Unsupported user input type. Please use one of 'input', 'roi', 'ecosystem' or 'background'")
+        raise ValueError("Unsupported user input type. Please use one of 'input', 'settings', 'roi', 'ecosystem' or 'background'")
 
     # Define the file path
     file_path = os.path.join(db_directory, file_name)

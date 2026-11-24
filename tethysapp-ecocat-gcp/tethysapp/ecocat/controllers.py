@@ -1,6 +1,7 @@
 import os
 from django.contrib import messages
 from django.http import JsonResponse, HttpResponseNotAllowed
+from pyproj import CRS
 from tethys_sdk.gizmos import Button, MapView, MVDraw, MVView, RangeSlider, SelectInput, TextInput, MVLayer, MVLegendClass
 from tethys_sdk.permissions import has_permission
 from tethys_sdk.routing import controller
@@ -1483,13 +1484,241 @@ def occurrences(request, user_workspace):
 
     return App.render(request, 'occurrences.html', context)
 
-@controller(name='settings')
-def settings(request):
+@controller(name='settings', app_workspace=True, user_workspace=True)
+def settings(request, app_workspace, user_workspace):
     """
     Controller for the settings page.
     """
 
-    return App.render(request, 'settings.html')
+    # Initialise the default values for each input field
+    default_incrs = default_outcrs = default_outformat = default_scale = default_model = default_method = default_spacing = default_reduce = None
+
+    # Initialise the errors for displaying above the selector
+    incrs_error = outcrs_error = scale_error = ""
+
+    try:
+
+        # Get the user's custom settings if they exist
+        if os.path.exists(os.path.join(user_workspace.path, 'custom_settings.json')):
+            settings_dict = get_user_input(user_workspace.path, 'settings')
+
+        # Otherwise, read in the default settings
+        else:
+            settings_dict = get_user_input(app_workspace.path, 'settings')
+
+        # Get the current custom settings
+        default_incrs = settings_dict['incrs']
+        default_outcrs = settings_dict['outcrs']
+        default_outformat = settings_dict['outformat']
+        default_scale = settings_dict['scale']
+        default_model = settings_dict['model']
+        default_method = settings_dict['method']
+        default_spacing = settings_dict['spacing']
+        default_reduce = settings_dict['reduce']
+
+        # Define the minimum selectable map scale based on user permissions
+        if has_permission(request, 'high_res_enabled'):
+            min_scale = 10
+        else:
+            min_scale = 100
+
+        # If a form is submitted
+        if request.POST:
+
+            # If the custom settings have been changed
+            if 'save' in request.POST:
+
+                # Get the new custom settings
+                incrs = request.POST.get('incrs', None)
+                outcrs = request.POST.get('outcrs', None)
+                outformat = request.POST.get('outformat', None)
+                scale = request.POST.get('scale', None)
+                model = request.POST.get('model', None)
+                method = request.POST.get('method', None)
+                spacing = request.POST.get('spacing', None)
+                reduce = request.POST.get('reduce', None)
+
+                # Verify the changed settings
+                try:
+                    _ = CRS.from_user_input(int(incrs))
+                    default_incrs = int(incrs)
+                except:
+                    incrs_error = "Please input a valid integer EPSG code for the input CRS"
+                try:
+                    _ = CRS.from_user_input(int(outcrs))
+                    default_outcrs = int(outcrs)
+                except:
+                    outcrs_error = "Please input a valid integer EPSG code for the output CRS"
+
+                # Verify the output format
+                if outformat in ['shp', 'geojson']:
+                    default_outformat = outformat
+                else:
+                    outformat_error = "Invalid output file format"
+
+                # Verify the map scale
+                if isinstance(scale, int):
+                    if scale >= 10 and scale <= 1000:
+                        default_scale = scale
+                    else:
+                        scale_error = "Map scale must be between 10 and 1000"
+                else:
+                    scale_error = "Map scale should be an integer value"
+
+                # Verify the model choice
+                if model in ['RF', 'kNN', 'SVM', 'CART']:
+                    default_model = model
+                else:
+                    model_error = "Invalid model architecture"
+
+                # Verify the method
+                if method in ['clusters', 'pixels']:
+                    default_method = method
+                else:
+                    method_error = "Invalid classification method"
+
+                # Verify the spacing factor
+                if isinstance(spacing, int):
+                    if spacing >= 1 and spacing <= 100:
+                        default_spacing = spacing
+                    else:
+                        spacing_error = "Spatial distancing factor must be between 1 and 100"
+                else:
+                    spacing_error = "Spatial distancing factor should be an integer value"
+
+                # Verify the reduction factor
+                if isinstance(reduce, int):
+                    if reduce >= 1 and reduce <= 100:
+                        default_reduce = reduce
+                    else:
+                        reduce_error = "Reduction operation factor must be between 1 and 100"
+                else:
+                    reduce_error = "Reduction operation factor should be an integer value"
+
+                # Update the custom settings JSON file
+                settings_dict = {'outformat': default_outformat,
+                                'incrs': default_incrs,
+                                'outcrs': default_outcrs,
+                                'scale': default_scale,
+                                'model': default_model,
+                                'method': default_method,
+                                'spacing': default_spacing,
+                                'reduce': default_reduce}
+                add_user_input(user_workspace.path, settings_dict, 'settings')
+
+            # If the default settings are to be restored
+            elif 'restore' in request.POST:
+
+                # Delete the user's custom settings
+                if os.path.exists(os.path.join(user_workspace.path, 'custom_settings.json')):
+                    os.remove(os.path.join(user_workspace.path, 'custom_settings.json'))
+                
+                # Get the default custom settings
+                settings_dict = get_user_input(app_workspace.path, 'settings')
+                default_incrs = settings_dict['incrs']
+                default_outcrs = settings_dict['outcrs']
+                default_outformat = settings_dict['outformat']
+                default_scale = settings_dict['scale']
+                default_model = settings_dict['model']
+                default_method = settings_dict['method']
+                default_spacing = settings_dict['spacing']
+                default_reduce = settings_dict['reduce']
+
+    # Raise any errors as a message
+    except Exception as e:
+        messages.error(request, f"Error: '{type(e).__name__}: {e}'")
+
+    # Select options for the output file format when downloading vector data
+    outformat_input = SelectInput(name='outformat',
+                                display_text="",
+                                options=[("GeoJSON", 'geojson'), ("ESRI Shapefile", 'shp')],
+                                initial=default_outformat,
+                                error=outformat_error)
+
+    # Text input for the input Coordinate Reference System (CRS) for any uploads
+    incrs_input = TextInput(name='incrs',
+                            display_text="Input CRS",
+                            initial=default_incrs,
+                            error=incrs_error)
+    
+    # Text input for the output CRS for any uploads
+    outcrs_input = TextInput(name='outcrs',
+                            display_text="Output CRS",
+                            initial=default_outcrs,
+                            error=outcrs_error)
+    
+    # Range slider for map scale selection
+    scale_input = RangeSlider(name='scale',
+                            display_text="",
+                            min=min_scale,
+                            max=1000,
+                            initial=default_scale,
+                            step=10,
+                            error=scale_error)
+
+    # Select options for the machine learning model architecture to use for classification
+    model_input = SelectInput(name='model',
+                            display_text="",
+                            options=[("Random forest (recommended)", 'RF'), ("k-Nearest Neighbour (k-NN)", 'kNN'), ("Support Vector Machine (SVM)", 'SVM'), ("Classification and Regression Trees (CART)", 'CART')],
+                            initial=default_model,
+                            error=model_error)
+
+    # Select options for applying clustering to training data to remove noise
+    method_input = SelectInput(name='method',
+                            display_text="",
+                            options=[("Classifying individual pixels (recommended)", 'pixels'), ("Classifying SNIC clusters", 'clusters')],
+                            initial=default_method,
+                            error=method_error)
+
+    # Range slider for training data sampling spacing factor
+    spacing_input = RangeSlider(name='spacing',
+                            display_text="",
+                            min=1,
+                            max=100,
+                            initial=default_spacing,
+                            step=1,
+                            error=spacing_error)
+
+    # Range slider for scaling factor for reduction operations
+    reduce_input = RangeSlider(name='reduce',
+                            display_text="",
+                            min=1,
+                            max=100,
+                            initial=default_reduce,
+                            step=1,
+                            error=reduce_error)
+    
+    # Button to restore all default custom settings
+    restore_button = Button(name='restore',
+                            display_text="Restore Settings",
+                            icon='arrow-counterclockwise',
+                            style='danger',
+                            attributes={'form': 'settings-form',
+                                        'title': "Restore all advanced settings to their default values"},
+                            submit=True)
+
+    # Button to save the custom settings
+    save_button = Button(name='save',
+                        display_text="Save Settings",
+                        icon='floppy',
+                        style='success',
+                        attributes={'id': 'save',
+                                    'form': 'settings-form',
+                                    'title': "Save your custom advanced settings by clicking this button"},
+                        submit=True)
+
+    context = {'outformat_input': outformat_input,
+            'incrs_input': incrs_input,
+            'outcrs_input': outcrs_input,
+            'scale_input': scale_input,
+            'model_input': model_input,
+            'method_input': method_input,
+            'spacing_input': spacing_input,
+            'reduce_input': reduce_input,
+            'restore_button': restore_button,
+            'save_button': save_button}
+
+    return App.render(request, 'settings.html', context)
 
 @controller(name='help')
 def help(request):
