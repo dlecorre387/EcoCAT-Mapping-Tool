@@ -112,7 +112,7 @@
     margin-left: 5px;
 }
 
-#app-content-wrapper #app-content #app-navigation ul.nav.nav-pills.flex-column div.input-group.mb-3 {
+#app-content-wrapper #app-content #inner-app-content div.input-group {
     margin-left: 20px;
     width: 40%;
 }
