@@ -1476,7 +1476,7 @@ def settings(request, app_workspace, user_workspace):
     default_incrs = default_outcrs = default_outformat = default_scale = default_model = default_method = default_spacing = default_reduce = None
 
     # Initialise the errors for displaying above the selector
-    incrs_error = outcrs_error = scale_error = ""
+    incrs_error = outcrs_error = outformat_error = scale_error = model_error = method_error = spacing_error = reduce_error = ""
 
     try:
 
