@@ -47,19 +47,10 @@ def input(request, app_workspace, user_workspace):
     default_roi = ''
     default_asset = default_level1 = default_level2 = None
     default_buffer = 0
-    default_scale = 100
-    if has_permission(request, 'high_res_enabled'):
-        min_scale = 10
-    else:
-        min_scale = 100
 
     # Initialise the options
-    if has_permission(request, 'time_series_enabled'):
-        years_options = [(str(i), str(i)) for i in range(2025, 1982, -1)]
-        interval_options = [("Every 10 years", '10'), ("Every 15 years", '15'), ("Every 20 years", '20')]
-    else:
-        years_options = [("2025", '2025')]
-        interval_options = []
+    years_options = [("2025", '2025')]
+    interval_options = []
     asset_options = []
     level1_options = []
     level2_options = []
@@ -67,7 +58,6 @@ def input(request, app_workspace, user_workspace):
     # Initialise the errors for displaying above the selector
     years_error = ""
     interval_error = ""
-    scale_error = ""
     asset_error = ""
     level1_error = ""
     level2_error = ""
@@ -75,11 +65,29 @@ def input(request, app_workspace, user_workspace):
     # Make sure to catch any errors to keep the tool running
     try:
 
+        # Set the year options based on permissions
+        if has_permission(request, 'time_series_enabled'):
+            years_options = [(str(i), str(i)) for i in range(2025, 1982, -1)]
+            interval_options = [("Every 10 years", '10'), ("Every 15 years", '15'), ("Every 20 years", '20')]
+
         # Define the initial GEE asset options
         if has_permission(request, 'wgsrpd_enabled'):
             asset_options = [(ROI_ASSETS[k]['display'], k) for k in ROI_ASSETS.keys()]
         else:
             asset_options = [(ROI_ASSETS[k]['display'], k) for k in ROI_ASSETS.keys() if not k.startswith('WGSRPD')]
+
+        # Get the user's custom settings if they exist
+        if os.path.exists(os.path.join(user_workspace.path, 'custom_settings.json')):
+            settings_dict = get_user_input(user_workspace.path, 'settings')
+        elif os.path.exists(os.path.join(app_workspace.path, 'custom_settings.json')):
+            settings_dict = get_user_input(app_workspace.path, 'settings')
+        else:
+            raise OSError("Could not open the settings dictionary")
+        
+        # Get the current custom settings
+        scale = settings_dict.get('scale', None)
+        if scale is None:
+            raise ValueError("Could not retrieve the map scale from the custom settings")
 
         # Get the user input as a dictionary if it exists
         user_dict = get_user_input(user_workspace.path, 'input')
@@ -99,13 +107,6 @@ def input(request, app_workspace, user_workspace):
             else:
                 years_error = "Select one or more assessment years"
                 interval_error = "OR choose an assessment interval"
-
-            # Get the map scale
-            scale = user_dict.get('scale', None)
-            if scale:
-                default_scale = scale
-            else:
-                scale_error = "Please select a map scale"
 
             # Get the previous asset, level 1 and level 2 filter choices
             asset = user_dict.get('asset', None)
@@ -130,10 +131,7 @@ def input(request, app_workspace, user_workspace):
                 level1_error = "Please select a filter or a country"
             elif level1:
                 asset_error = "Please select a catalogue"
-
-            # Update the custom settings
-            update_settings(user_workspace=user_workspace)
-                                                
+        
         # Get the RoI as a GeoJSON if it exists
         roi = get_user_input(user_workspace.path, 'roi')           
 
@@ -160,7 +158,6 @@ def input(request, app_workspace, user_workspace):
                 default_level1 = user_dict['level1']
                 default_level2 = user_dict['level2']
                 default_buffer = user_dict['buffer']
-                default_scale = user_dict['scale']
 
                 # Get the new level 1 and level 2 options
                 level1_options = [(ROI_ASSETS[default_asset]['level1'][k]['name'], k) for k in ROI_ASSETS[default_asset]['level1'].keys()]
@@ -189,7 +186,6 @@ def input(request, app_workspace, user_workspace):
                 interval = request.POST.get('interval', None)
                 roi = request.POST.get('geometry', None)
                 buffer = int(request.POST.get('buffer', None))
-                scale = int(request.POST.get('scale', None))
                 
                 # Check whether a RoI has been selected from the list of assets
                 asset = request.POST.get('asset', None)
@@ -265,7 +261,7 @@ def input(request, app_workspace, user_workspace):
 
                     # Check that the scale is at least 30m/px if using years before 2017
                     if scale < 30 and not all([int(year) >= 2017 for year in years]):
-                        scale_error = "Map scale must be >30 m/px if years before 2017 are selected"
+                        raise ValueError("Map scale must be greater than or equal to 30 m/px if years before 2017 are selected")
 
                 # Validate the RoI input
                 if roi:
@@ -290,7 +286,6 @@ def input(request, app_workspace, user_workspace):
                         raise ValueError(f"The chosen Region of Interest (RoI) is likely to be too large regardless of the map scale used. Please use a smaller RoI, such as a specific admin region instead of an entire country.")
                     if n_pixels > 5e7:
                         asset_error = "Try using a smaller RoI"
-                        scale_error = "Try using a larger map scale"
                         raise ValueError(f"There are too many pixels within the chosen Region of Interest (RoI). Please use a smaller RoI, or increase the map scale (recommended value for this RoI: {np.ceil(np.sqrt(calculate_area(roi) / 5e7) / 100) * 100:0.0f})")
                     
                 elif not (asset_error or level1_error or level2_error):
@@ -300,14 +295,13 @@ def input(request, app_workspace, user_workspace):
                 default_buffer = buffer
                 if roi and asset_error == "":
                     default_roi = roi
-                    default_scale = scale
 
                 # Check if there has been an error
-                if years_error or interval_error or asset_error or level1_error or level2_error or scale_error:
+                if years_error or interval_error or asset_error or level1_error or level2_error:
                     raise ValueError("Please fix errors")
                 
                 # Persist user inputs
-                user_dict = {'years': default_years, 'scale': default_scale}
+                user_dict = {'years': default_years}
                 if all([default_asset, default_level1]):
                     user_dict.update({'asset': default_asset, 'level1': default_level1, 'buffer': default_buffer})
                     if default_level2:
@@ -328,7 +322,6 @@ def input(request, app_workspace, user_workspace):
                 default_roi = ''
                 default_asset = default_level1 = default_level2 = None
                 default_buffer = 0
-                default_scale = 100
 
                 # Remove the user input
                 input_path = os.path.join(user_workspace.path, 'user_input.json')
@@ -443,16 +436,6 @@ def input(request, app_workspace, user_workspace):
                             error=interval_error,
                             select2_options={'placeholder': "e.g. Every 20 years"},
                             attributes={'form': 'input-form'})
-
-    # Range slider for map scale selection
-    scale_input = RangeSlider(name='scale',
-                            display_text="",
-                            min=min_scale,
-                            max=1000,
-                            initial=default_scale,
-                            step=10,
-                            error=scale_error,
-                            attributes={'form': 'input-form'})
     
     # Button to delete all current user inputs
     reset_button = Button(name='reset',
@@ -506,7 +489,6 @@ def input(request, app_workspace, user_workspace):
             'level1_input': level1_input,
             'level2_input': level2_input,
             'buffer_input': buffer_input,
-            'scale_input': scale_input,
             'reset_button': reset_button,
             'example_button': example_button,
             'generate_button': generate_button,
