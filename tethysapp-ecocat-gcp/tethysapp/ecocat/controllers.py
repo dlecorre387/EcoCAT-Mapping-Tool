@@ -1483,20 +1483,20 @@ def settings(request, app_workspace, user_workspace):
         # Get the user's custom settings if they exist
         if os.path.exists(os.path.join(user_workspace.path, 'custom_settings.json')):
             settings_dict = get_user_input(user_workspace.path, 'settings')
-
-        # Otherwise, read in the default settings
-        else:
+        elif os.path.exists(os.path.join(app_workspace.path, 'custom_settings.json')):
             settings_dict = get_user_input(app_workspace.path, 'settings')
+        else:
+            raise OSError("Could not open the custom settings dictionary")
 
         # Get the current custom settings
-        default_incrs = settings_dict['incrs']
-        default_outcrs = settings_dict['outcrs']
-        default_outformat = settings_dict['outformat']
-        default_scale = settings_dict['scale']
-        default_model = settings_dict['model']
-        default_method = settings_dict['method']
-        default_spacing = settings_dict['spacing']
-        default_reduce = settings_dict['reduce']
+        default_incrs = settings_dict.get('incrs', None)
+        default_outcrs = settings_dict.get('outcrs', None)
+        default_outformat = settings_dict.get('outformat', None)
+        default_scale = settings_dict.get('scale', None)
+        default_model = settings_dict.get('model', None)
+        default_method = settings_dict.get('method', None)
+        default_spacing = settings_dict.get('spacing', None)
+        default_reduce = settings_dict.get('reduce', None)
 
         # Define the minimum selectable map scale based on user permissions
         if has_permission(request, 'high_res_enabled'):
@@ -1520,17 +1520,23 @@ def settings(request, app_workspace, user_workspace):
                 spacing = request.POST.get('spacing', None)
                 reduce = request.POST.get('reduce', None)
 
-                # Verify the changed settings
-                try:
-                    _ = CRS.from_user_input(int(incrs))
-                    default_incrs = int(incrs)
-                except:
-                    incrs_error = "Please input a valid integer EPSG code for the input CRS"
-                try:
-                    _ = CRS.from_user_input(int(outcrs))
-                    default_outcrs = int(outcrs)
-                except:
-                    outcrs_error = "Please input a valid integer EPSG code for the output CRS"
+                # Verify the input CRS
+                if isinstance(incrs, str):
+                    if not incrs.isnumeric():
+                        incrs_error = "Please input a valid integer EPSG code for the input CRS"
+                    else:
+                        default_incrs = int(incrs)
+                elif isinstance(incrs, int):
+                    default_incrs = incrs
+
+                # Verify the output CRS
+                if isinstance(outcrs, str):
+                    if not outcrs.isnumeric():
+                        outcrs_error = "Please input a valid integer EPSG code for the output CRS"
+                    else:
+                        default_outcrs = int(outcrs)
+                elif isinstance(outcrs, int):
+                    default_outcrs = outcrs
 
                 # Verify the output format
                 if outformat in ['shp', 'geojson']:
@@ -1615,19 +1621,22 @@ def settings(request, app_workspace, user_workspace):
                                 display_text="",
                                 options=[("GeoJSON", 'geojson'), ("ESRI Shapefile", 'shp')],
                                 initial=default_outformat,
-                                error=outformat_error)
+                                error=outformat_error,
+                                attributes={'form': 'settings-form'})
 
     # Text input for the input Coordinate Reference System (CRS) for any uploads
     incrs_input = TextInput(name='incrs',
                             display_text="Input CRS",
                             initial=default_incrs,
-                            error=incrs_error)
+                            error=incrs_error,
+                            attributes={'form': 'settings-form'})
     
     # Text input for the output CRS for any uploads
     outcrs_input = TextInput(name='outcrs',
                             display_text="Output CRS",
                             initial=default_outcrs,
-                            error=outcrs_error)
+                            error=outcrs_error,
+                            attributes={'form': 'settings-form'})
     
     # Range slider for map scale selection
     scale_input = RangeSlider(name='scale',
@@ -1636,21 +1645,24 @@ def settings(request, app_workspace, user_workspace):
                             max=1000,
                             initial=default_scale,
                             step=10,
-                            error=scale_error)
+                            error=scale_error,
+                            attributes={'form': 'settings-form'})
 
     # Select options for the machine learning model architecture to use for classification
     model_input = SelectInput(name='model',
                             display_text="",
                             options=[("Random forest (recommended)", 'RF'), ("k-Nearest Neighbour (k-NN)", 'kNN'), ("Support Vector Machine (SVM)", 'SVM'), ("Classification and Regression Trees (CART)", 'CART')],
                             initial=default_model,
-                            error=model_error)
+                            error=model_error,
+                            attributes={'form': 'settings-form'})
 
     # Select options for applying clustering to training data to remove noise
     method_input = SelectInput(name='method',
                             display_text="",
                             options=[("Classifying individual pixels (recommended)", 'pixels'), ("Classifying SNIC clusters", 'clusters')],
                             initial=default_method,
-                            error=method_error)
+                            error=method_error,
+                            attributes={'form': 'settings-form'})
 
     # Range slider for training data sampling spacing factor
     spacing_input = RangeSlider(name='spacing',
@@ -1659,7 +1671,8 @@ def settings(request, app_workspace, user_workspace):
                             max=100,
                             initial=default_spacing,
                             step=1,
-                            error=spacing_error)
+                            error=spacing_error,
+                            attributes={'form': 'settings-form'})
 
     # Range slider for scaling factor for reduction operations
     reduce_input = RangeSlider(name='reduce',
@@ -1668,7 +1681,8 @@ def settings(request, app_workspace, user_workspace):
                             max=100,
                             initial=default_reduce,
                             step=1,
-                            error=reduce_error)
+                            error=reduce_error,
+                            attributes={'form': 'settings-form'})
     
     # Button to restore all default custom settings
     restore_button = Button(name='restore',

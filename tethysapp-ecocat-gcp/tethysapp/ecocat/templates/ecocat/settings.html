@@ -10,9 +10,6 @@
 
 {% block app_content %}
 
-    <form id="settings-form" method="post" enctype="multipart/form-data">
-    {% csrf_token %}
-
     <h2 id="settings"><i class="bi bi-gear-fill"></i> Advanced Settings</h2>
 
     <br><h5 id="data"><i class="bi bi-database-fill"></i> Data Format and Display</h5>
@@ -55,6 +52,8 @@
     </ul>
     {% gizmo reduce_input %}
 
+    <form id="settings-form" method="post" enctype="multipart/form-data">
+    {% csrf_token %}
     </form>
 
 {% endblock %}
