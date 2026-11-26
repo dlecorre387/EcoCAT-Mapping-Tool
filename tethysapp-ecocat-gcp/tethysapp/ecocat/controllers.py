@@ -140,7 +140,7 @@ def input(request, app_workspace, user_workspace):
             default_roi = roi
 
         # Check if there has been an error
-        if years_error or interval_error or asset_error or level1_error or level2_error or scale_error:
+        if years_error or interval_error or asset_error or level1_error or level2_error:
             raise ValueError("Please fix errors")
         
         # Handle form submission

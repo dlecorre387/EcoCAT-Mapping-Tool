@@ -1,1 +1,1 @@
-{"scale": 100, "model": "RF", "incrs": 4326, "ocrs": 4326, "outformat": "geojson", "cluster": "", "spacing": 10, "reduce": 10}
+{"scale": 100, "model": "RF", "incrs": 4326, "outcrs": 4326, "outformat": "geojson", "method": "pixels", "spacing": 10, "reduce": 10}
