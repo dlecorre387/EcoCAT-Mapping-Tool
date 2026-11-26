@@ -112,6 +112,11 @@
     margin-left: 5px;
 }
 
+#app-content-wrapper #app-content #app-navigation ul.nav.nav-pills.flex-column div.input-group.mb-3 {
+    margin-left: 20px;
+    width: 40%;
+}
+
 #app-content-wrapper #app-header div.tethys-app-header.show-header div.header-button.glyphicon-button a {
     font-size: 1.0rem;
     font-family: "Franklin Gothic Demi", "Franklin Gothic Medium", "Franklin Gothic", "ITC Franklin Gothic", sans-serif;

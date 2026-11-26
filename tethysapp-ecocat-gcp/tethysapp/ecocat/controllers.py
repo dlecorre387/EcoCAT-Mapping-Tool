@@ -1521,22 +1521,18 @@ def settings(request, app_workspace, user_workspace):
                 reduce = request.POST.get('reduce', None)
 
                 # Verify the input CRS
-                if isinstance(incrs, str):
-                    if not incrs.isnumeric():
-                        incrs_error = "Please input a valid integer EPSG code for the input CRS"
-                    else:
-                        default_incrs = int(incrs)
-                elif isinstance(incrs, int):
-                    default_incrs = incrs
-
+                try:
+                    _ = CRS.from_user_input(int(incrs))
+                    default_incrs = int(incrs)
+                except:
+                    incrs_error = "Please input a valid integer EPSG code for the input CRS"
+                
                 # Verify the output CRS
-                if isinstance(outcrs, str):
-                    if not outcrs.isnumeric():
-                        outcrs_error = "Please input a valid integer EPSG code for the output CRS"
-                    else:
-                        default_outcrs = int(outcrs)
-                elif isinstance(outcrs, int):
-                    default_outcrs = outcrs
+                try:
+                    _ = CRS.from_user_input(int(outcrs))
+                    default_outcrs = int(outcrs)
+                except:
+                    outcrs_error = "Please input a valid integer EPSG code for the output CRS"
 
                 # Verify the output format
                 if outformat in ['shp', 'geojson']:
@@ -1545,12 +1541,13 @@ def settings(request, app_workspace, user_workspace):
                     outformat_error = "Invalid output file format"
 
                 # Verify the map scale
-                if isinstance(scale, int):
+                try: 
+                    scale = int(scale)
                     if scale >= 10 and scale <= 1000:
                         default_scale = scale
                     else:
                         scale_error = "Map scale must be between 10 and 1000"
-                else:
+                except:
                     scale_error = "Map scale should be an integer value"
 
                 # Verify the model choice
@@ -1566,21 +1563,23 @@ def settings(request, app_workspace, user_workspace):
                     method_error = "Invalid classification method"
 
                 # Verify the spacing factor
-                if isinstance(spacing, int):
+                try: 
+                    spacing = int(spacing)
                     if spacing >= 1 and spacing <= 100:
                         default_spacing = spacing
                     else:
                         spacing_error = "Spatial distancing factor must be between 1 and 100"
-                else:
+                except:
                     spacing_error = "Spatial distancing factor should be an integer value"
 
                 # Verify the reduction factor
-                if isinstance(reduce, int):
+                try:
+                    reduce = int(reduce)
                     if reduce >= 1 and reduce <= 100:
                         default_reduce = reduce
                     else:
                         reduce_error = "Reduction operation factor must be between 1 and 100"
-                else:
+                except:
                     reduce_error = "Reduction operation factor should be an integer value"
 
                 # Update the custom settings JSON file
