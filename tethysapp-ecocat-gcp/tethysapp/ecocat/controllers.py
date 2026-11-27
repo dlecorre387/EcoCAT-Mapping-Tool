@@ -1625,14 +1625,14 @@ def settings(request, app_workspace, user_workspace):
 
     # Text input for the input Coordinate Reference System (CRS) for any uploads
     incrs_input = TextInput(name='incrs',
-                            display_text="Input CRS",
+                            display_text="",
                             initial=default_incrs,
                             error=incrs_error,
                             attributes={'form': 'settings-form'})
     
     # Text input for the output CRS for any uploads
     outcrs_input = TextInput(name='outcrs',
-                            display_text="Output CRS",
+                            display_text="",
                             initial=default_outcrs,
                             error=outcrs_error,
                             attributes={'form': 'settings-form'})

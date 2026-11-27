@@ -17,12 +17,20 @@
     <ul>
         <li>Input/Output Coordinate Reference System (CRS)</li>
     </ul>
+    <p>By default, the EcoCAT Mapping Tool assumes that all geo-referenced vector data is in a WGS84 geographic Coordinate Reference System (CRS). However, if you are uploading 
+        data that is frequently in a different CRS, or if you want to download data from the tool in that same CRS, you can do so by specifying the EPSG code (e.g. 4326 for 
+        geographic WGS84) for your projection below.</p>
+    <p>Input CRS:</p>
     {% gizmo incrs_input %}
+    <p>Output CRS:</p>
     {% gizmo outcrs_input %}
 
     <ul>
         <li>Output File Format</li>
     </ul>
+    <p>When downloading vector data from the EcoCAT Mapping Tool, the default file format is a GeoJSON. Although users can also choose do retrieve this data in ESRI shapefile 
+        format, without needing to convert it after the fact. If ESRI shapefiles are selected as the format, the constituent files (.shp, .shx, .dbf, .prj) will be downloaded 
+        as a .zip file.</p>
     {% gizmo outformat_input %}
 
     <br><h5 id="mapping"><i class="bi bi-sliders2"></i> Classification Parameters</h5>
@@ -30,30 +38,46 @@
     <ul>
         <li>Map Scale</li>
     </ul>
+    <p>The map scale is the resolution (in m/px) of the final ecosystem maps. This value should provide sufficient detail without resulting in the RoI containing too many pixels
+        , leading to memory errors or long run times. </p>
     {% gizmo scale_input %}
 
     <ul>
         <li>Machine Learning Model Architecture</li>
     </ul>
+    <p>Google Earth Engine provides several machine learning model architectures that can perform binary classification. The following options are the models that can also output 
+        model probabilities. The recommended choice for most instances will be a random forest model.</p>
     {% gizmo model_input %}
 
     <ul>
         <li>Classification Approach - Beta</li>
     </ul>
+    <p>NOTE: Changing this option will currently lead to strange display issues when classifying your ecosystem. The default approach to classifying ecosystems is to sample pixels 
+        individually, train on these samples, and classify each pixel as ecosystem or not. However, this can occasionally lead to small, noisy detections in the final map. A way 
+        of producing a more contiguous map is to cluster the pixels in the training data into segments. By sampling from these clusters, and classifying them as a whole, it can 
+        remove this 'salt-and-pepper' noise, at the expense of some detail around larger ecosystem units.</p>
     {% gizmo method_input %}
 
     <ul>
         <li>Spatial Distancing Factor</li>
     </ul>
+    <p>Spatial auto-correlation is a phenomenon that can occur when adjacent pixels, or pixels in close proximity, can have very similar values. Sampling these pixels to use as 
+        training data could cause the model to be biased to that particular spectral signature. To mitigate this effect, polygon labels are converted into a regular grid of 
+        spatially-distanced points, with these points then being used to sample the training data. The spatial distancing factor is how many pixels there are between each row/
+        column of the regular point grid. This factor can be increased if many polygons have been labelled, or if the polygons cover a large area. Or it can be decreased if the 
+        ecosystem units are typically very small, or take up a small area.</p>
     {% gizmo spacing_input %}
    
     <ul>
         <li>Reduction Operation Factor</li>
     </ul>
+    <p>To preserve computational cost when calculating statistics from an image (i.e. reducing it), images can be downscaled to a coarser scale as an approximation of the true
+        value. For larger RoIs, or smaller map scales, where there are more pixels, it may be necessary to increase this factor. Otherwise, it can be decreased to enhance the 
+        accuracy of the reduction operation.</p>
     {% gizmo reduce_input %}
 
     <form id="settings-form" method="post" enctype="multipart/form-data">
-    {% csrf_token %}
+        {% csrf_token %}
     </form>
 
 {% endblock %}
