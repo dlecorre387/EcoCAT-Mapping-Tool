@@ -114,7 +114,8 @@
 
 #app-content-wrapper #app-content #inner-app-content div.input-group {
     margin-left: 20px;
-    width: 40%;
+    margin-bottom: 1rem;
+    width: 30%;
 }
 
 #app-content-wrapper #app-header div.tethys-app-header.show-header div.header-button.glyphicon-button a {
